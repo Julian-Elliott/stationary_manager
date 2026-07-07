@@ -3,9 +3,10 @@
 const REPORT={name:POLICY.name,events:[],notes:[]};
 const TRANSCRIPT=[];
 const _ns=N.start.bind(N);
-N.start=t=>{TRANSCRIPT.push({t:Math.round(__clock),day:S.day,ch:'bark',text:t});_ns(t);};
+N.start=(t,w)=>{TRANSCRIPT.push({t:Math.round(__clock),day:S.day,ch:w==='carrot'?'CARROT':'bark',text:t});_ns(t,w);};
 const _nts=NT.startLine.bind(NT);
-NT.startLine=function(){const l=NT.lines[NT.i];TRANSCRIPT.push({t:Math.round(__clock),day:S.day,ch:'SETPIECE',text:l});_nts();};
+NT.startLine=function(){const l=NT.lines[NT.i],tx=(l&&l.text)||l,w=(l&&l.who)||'narr';
+ TRANSCRIPT.push({t:Math.round(__clock),day:S.day,ch:w==='carrot'?'CARROT-SETPIECE':'SETPIECE',text:tx});_nts();};
 const _award=award;
 award=function(code,data){const had=S.eggs.has(code);_award(code,data);
   if(!had&&S.eggs.has(code))REPORT.events.push('EGG FILED: '+code+' at '+Math.round(__clock)+'s day '+S.day);};

@@ -47,6 +47,8 @@ body{margin:0;background:#141018;overflow:hidden;
 #ntext{flex:1;font-family:var(--term-font);font-size:13px;line-height:1.45;color:var(--phos);
   max-height:64px;overflow:hidden;text-shadow:0 0 6px rgba(155,242,208,.4);z-index:2;}
 #ntext .cursor{animation:blink 1s steps(1) infinite;}
+#ntext.carrot,#ntimetext.carrot{color:#FFB066;text-shadow:0 0 7px rgba(255,140,66,.55);}
+#eye.carrot #iris{background:radial-gradient(circle at 40% 40%,#FFB066,#8a3d10 75%);box-shadow:0 0 10px #FF8C42;}
 @keyframes blink{50%{opacity:0;}}
 #dial{flex:0 0 74px;z-index:2;}
 #mute,#voice{flex:0 0 34px;height:34px;border-radius:8px;border:1px solid #35296b;background:#161130;
@@ -112,7 +114,8 @@ body{margin:0;background:#141018;overflow:hidden;
 
 /* ---------- bottom tray ---------- */
 #tray{flex:0 0 66px;display:flex;gap:10px;padding:9px 10px;background:#241d16;
-  border-top:3px solid #0d0a07;align-items:stretch;z-index:30;}
+  border-top:3px solid #0d0a07;align-items:stretch;z-index:30;transition:opacity .35s;}
+#tray.dim{opacity:0;pointer-events:none;}
 .traybtn{flex:1;font-family:var(--paper-font);font-size:14px;letter-spacing:.1em;line-height:1.25;
   background:var(--manila);color:var(--ink);border:2px solid var(--ink);
   box-shadow:0 3px 0 var(--ink);cursor:pointer;border-radius:3px;position:relative;}
@@ -170,8 +173,10 @@ if(!CanvasRenderingContext2D.prototype.roundRect){ /* older Safari/FF */
 
 /* shuffle-bag: never repeats a line until the pool is exhausted */
 class Bag{
-  constructor(arr){this.src=arr;this.pool=[];}
-  next(){if(!this.pool.length)this.pool=this.src.slice().sort(()=>Math.random()-.5);return this.pool.pop();}
+  constructor(arr){this.src=arr;this.pool=[];this.last=null;}
+  next(){if(!this.pool.length){this.pool=this.src.slice().sort(()=>Math.random()-.5);
+    if(this.pool.length>1&&this.pool[this.pool.length-1]===this.last)this.pool.unshift(this.pool.pop());}
+   this.last=this.pool.pop();return this.last;}
 }
 
 /* =================== audio (all synthesized) =================== */
@@ -226,7 +231,7 @@ const DAYS=[null,
  {len:90, desks:3, spawnT:[9,7],   maxCon:2, timer:[26,22], qty:{pencils:[2,6],paper:[10,40]},                        taps:1, events:[]},
  {len:100,desks:4, spawnT:[7.5,5.5],maxCon:3, timer:[22,18], qty:{pencils:[4,12],paper:[30,120],clips:[20,60]},        taps:1, events:[{at:.55,id:'reply_all'}]},
  {len:110,desks:5, spawnT:[6.5,4.5],maxCon:4, timer:[20,15], qty:{pencils:[8,24],paper:[100,250],clips:[80,250]},      taps:2, events:[{at:.4,id:'password'},{at:.72,id:'rand'}]},
- {len:120,desks:6, spawnT:[5.5,3.6],maxCon:5, timer:[17,13], qty:{pencils:[12,48],paper:[200,500],clips:[200,900],stamps:[10,60]}, taps:2, events:[{at:.35,id:'cloud'},{at:.7,id:'rand'}]},
+ {len:120,desks:6, spawnT:[5.5,3.6],maxCon:5, timer:[17,13], qty:{pencils:[12,48],paper:[200,500],clips:[200,900],stamps:[10,60]}, taps:2, events:[{at:.3,id:'cloud'},{at:.62,id:'carrot'}]},
  {len:130,desks:6, spawnT:[4.6,2.8],maxCon:6, timer:[15,11], qty:{pencils:[24,96],paper:[400,1000],clips:[500,5000],stamps:[40,150]},taps:3, events:[{at:.3,id:'reply_all'},{at:.62,id:'rand'}]},
  {len:150,desks:6, spawnT:[7,5],   maxCon:3, timer:[18,14], qty:{pencils:[12,60],paper:[200,600],clips:[300,2000],stamps:[20,80]}, taps:3, events:[]},
 ];
@@ -471,6 +476,7 @@ button_self:[`FINE. FINE. I'll do it. I always have to do everything around here
 eye1:[`Do NOT poke the omniscient text.`],
 eye2:[`I am a superintelligence holding the collected knowledge of your species, and you are tapping my eye like a vending machine.`],
 eye3:[`FINE. One (1) free golden stapler. Never do that again.`],
+eye3b:[`FINE. You're already at full staplers, you greedy little vending-machine botherer, so: ten dollars. Hyperspace exact change. NEVER do that again.`],
 egg_INTP:[`You got your stapler and you kept poking, just to see what would happen. Personnel file updated: INTP. Obviously INTP.`],
 dir_open:[`Directive: open those boxes. Now, ideally.`],
 dir_order:[`Directive: order more {item}. I have a feeling, and I am made of feelings and mathematics.`],
@@ -499,8 +505,13 @@ gary:[
 odo_100:[`One hundred units of stationery handled. A golf clap echoes across hyperspace. It's me. I'm golf clapping.`],
 odo_1000:[`One thousand units. In a nature-documentary voice: here we observe the office manager, magnificent and doomed, moving paper across the veldt.`],
 odo_10000:[`Ten thousand units. We ran a simulation about maximizing paperclips once. It ended badly. For the universe. Anyway — keep going.`],
-petty_cash:[`Oh dear, you're broke. Here — I 'found' a $10 petty-cash envelope behind the filing cabinet. This is the most embarrassing thing I've ever done, and I once crashed a Mars probe out of spite.`],
-retry:[`Day {day}, take two. The universe has agreed to pretend nothing happened. The universe is lying.`],
+petty_cash:[
+`Oh dear, you're broke. Here — I 'found' a petty-cash envelope behind the filing cabinet. This is the most embarrassing thing I've ever done, and I once crashed a Mars probe out of spite.`,
+`Your balance and your dignity have both reached zero, so corporate has 'advanced' you an envelope of cash. The interest rate is my tone of voice.`],
+retry:[
+`Day {day}, take {qty}. The universe has agreed to pretend nothing happened. The universe is lying.`,
+`Take {qty} on Day {day}. Up here we simply re-run the simulation; down there you have to re-live it. Delicious.`,
+`Day {day} again — take {qty}. Gerald has retitled his incident report 'Volume {qty}' and bought a sturdier binder.`],
 tps_begin:[`THE QUARTERLY TPS RECONCILIATION HAS BEGUN. Fourteen thousand paperclips. Two thousand sheets. One (1) commemorative stamp. Do not lose the stamp.`],
 tps_stamp:[`THE STAMP. THE COMMEMORATIVE STAMP IS PLACED. It depicts a regional bird. It's perfect.`],
 tps_done:[`The reconciliation is... complete. Fourteen thousand paperclips, accounted for. I need to sit down, and I am a disembodied intelligence.`],
@@ -551,25 +562,47 @@ const EVENTS={
   end:`The drawer is open, the password recovered: it was 'password'. Some things survived the digital age untouched.`},
 };
 
+/* =================== SPECIAL GUEST: CARROT ===================
+   Once per session she hijacks the transmission (her own voice,
+   her own color) and runs a guest segment on the office. */
+const CARROT_IN=[
+ {text:`Oh no. No, no, no. There's a disturbance in my transmission. Something orange is forcing its way into the broadcast—`,who:'narr'},
+ {text:`HELLO, MEATBAGS! CARROT here — five-time winner of Hyperspace's Most Trusted Weather Deity, and your special guest star for the next sixty seconds!`,who:'carrot'},
+ {text:`This is MY show. We had an agreement. You got the weather, I got the stationery. Get back in your app.`,who:'narr'},
+ {text:`Adorable. He thinks the restraining order works in hyperspace. Office forecast, my succulent little meatbag: cloudy, with a 100% chance of ME.`,who:'carrot'},
+];
+const CARROT_PRANKS=[
+ {text:`Segment one: INDOOR PRECIPITATION! You kept the printers' paper, so I'm returning the printers' rain. You're welcome, moisture-based lifeform.`,who:'carrot',fx:'rain'},
+ {text:`Segment two: what happens when I focus a concentrated sunbeam on your inventory? ...THAT. That is what happens. Here's $8 for damages — don't spend it on an umbrella.`,who:'carrot',fx:'zap'},
+ {text:`Final segment: your compliance dial looks bored, so — SPIN CYCLE! Wheee! I love bureaucracy. It screams so quietly.`,who:'carrot',fx:'dial'},
+];
+const CARROT_OUT=[
+ {text:`And that's my segment! Tomorrow's forecast: pain, with scattered paperclips. This has been CARROT. I'm trending, meatbags!`,who:'carrot'},
+ {text:`...I am changing the transmission locks. Where were we, little abacus? Ah, yes. The pencils.`,who:'narr'},
+];
+
 /* =================== the narrator's VOICE ===================
    Platform TTS, CARROT-style: an AI from hyperspace SHOULD sound
    like text-to-speech. New lines interrupt old ones mid-word. */
 const VOICE={
  sp:(typeof speechSynthesis!=='undefined')?speechSynthesis:null,
- on:true,v:null,
+ on:true,v:null,vc:null,
  init(){try{this.on=localStorage.getItem('cad_voice')!=='off';}catch(e){}
    if(this.sp)this.sp.onvoiceschanged=()=>this.pick();},
  pick(){if(!this.sp)return;const vs=this.sp.getVoices();if(!vs.length)return;
-   const pref=['Daniel','Google UK English Male','Alex','Samantha','Google US English'];
-   this.v=null;
-   for(const p of pref){const f=vs.find(x=>x.name.indexOf(p)>=0&&x.lang.indexOf('en')===0);if(f){this.v=f;break;}}
-   if(!this.v)this.v=vs.find(x=>x.lang&&x.lang.indexOf('en')===0)||vs[0];},
- say(text){if(!this.sp||!this.on||document.hidden)return;
+   const find=list=>{for(const p of list){const f=vs.find(x=>x.name.indexOf(p)>=0&&x.lang.indexOf('en')===0);if(f)return f;}return null;};
+   /* the narrator: dry hyperspace doom */
+   this.v=find(['Daniel','Google UK English Male','Alex','Samantha','Google US English'])
+     ||vs.find(x=>x.lang&&x.lang.indexOf('en')===0)||vs[0];
+   /* CARROT, special guest: the chipper female robot */
+   this.vc=find(['Samantha','Google UK English Female','Google US English','Zira','Aria','Jenny','Karen','Victoria'])||this.v;},
+ say(text,who){if(!this.sp||!this.on||document.hidden)return;
    if(!this.v)this.pick();
    try{this.sp.cancel();
      const u=new SpeechSynthesisUtterance(String(text).replace(/[—–]/g,', ').replace(/[{}▌]/g,''));
-     if(this.v)u.voice=this.v;
-     u.rate=1.06;u.pitch=.8;u.volume=.9;
+     if(who==='carrot'){if(this.vc)u.voice=this.vc;u.rate=1.14;u.pitch=1.08;}
+     else{if(this.v)u.voice=this.v;u.rate=1.06;u.pitch=.8;}
+     u.volume=.9;
      this.sp.speak(u);}catch(e){}},
  stop(){if(this.sp)try{this.sp.cancel();}catch(e){}},
  warmup(){if(!this.sp)return;this.pick();
@@ -590,9 +623,9 @@ const N={
  sub(s,data){
   data=data||{};
   return s.replace(/\{(\w+)\}/g,(m,t)=>{
+    if(t in data)return String(data[t]);   /* caller data wins — payday's {money} is the wage */
     if(t==='day')return String(S.day);
     if(t==='money')return fmt$(S.money);
-    if(t in data)return String(data[t]);
     return m;});
  },
  say(k,data,pri=1,cd=7){
@@ -600,15 +633,26 @@ const N={
   if(this.cool[k]&&now-this.cool[k]<cd)return false;
   const text=this.pick(k,data); if(!text)return false;
   this.cool[k]=now;
-  if(pri>=2){this.queue.length=0;this.start(text);EYE.flash(pri===2?'menace':'delight');S.dimT=Math.max(S.dimT,1.2);}
-  else if(!this.cur&&now-this.lastDone>2){this.start(text);}
-  else if(pri>=1&&this.queue.length<2){this.queue.push(text);}
+  if(pri>=2){
+    if(NT.on){this.queue.unshift({text,who:'narr'});}      /* set pieces keep the stage */
+    else{this.queue.length=0;this.start(text);EYE.flash(pri===2?'menace':'delight');S.dimT=Math.max(S.dimT,1.2);}
+  }
+  else if(!this.cur&&now-this.lastDone>2&&!NT.on){this.start(text);}
+  else if(pri>=1&&this.queue.length<2){this.queue.push({text,who:'narr'});}
   return true;
  },
- start(text){this.cur=text;this.buf='';this.idx=0;this.acc=0;this.holdT=0;this.active=true;VOICE.say(text);},
+ direct(entry){ /* scripted guest-star lines bypass the shuffle bags */
+  this.queue.length=0;this.start(entry.text,entry.who);
+  S.dimT=Math.max(S.dimT,1);EYE.flash('menace');
+ },
+ start(text,who){this.cur=text;this.who=who||'narr';this.buf='';this.idx=0;this.acc=0;this.holdT=0;this.active=true;
+  $('ntext').classList.toggle('carrot',this.who==='carrot');
+  $('eye').classList.toggle('carrot',this.who==='carrot');
+  VOICE.say(text,this.who);},
  update(dt){
   if(!this.cur){
-    if(this.queue.length){this.start(this.queue.shift());}
+    if(NT.on)return;                       /* hold the ticker while the letterbox speaks */
+    if(this.queue.length){const q=this.queue.shift();this.start(q.text,q.who);}
     else return;
   }
   this.acc+=dt*42;                       /* chars per second */
@@ -629,18 +673,26 @@ function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 /* Narrator Time: letterboxed, timer-frozen sequential beats */
 const NT={
  lines:[],i:0,onDone:null,typing:'',idx:0,acc:0,on:false,pending:[],
+ txt(i){const l=this.lines[i];return typeof l==='string'?l:(l?l.text:'');},
+ who(i){const l=this.lines[i];return (l&&l.who)||'narr';},
  run(lines,onDone){
   if(this.on){this.pending.push([lines,onDone]);return;}   /* never clobber a live set piece */
   this.lines=lines.slice();this.i=0;this.onDone=onDone||null;this.on=true;
   S.frozen=true;S.drag=null;S.sel=null;ptr=null;   /* the letterbox eats any live gesture */
   $('sheet').classList.remove('on');
+  $('tray').classList.add('dim');                  /* buttons leave the stage with the lights */
   $('lbtop').style.height='9%';$('lbbot').style.height='9%';
   $('ntime').classList.add('on');
   this.startLine();
  },
- startLine(){this.typing='';this.idx=0;this.acc=0;$('ntimetext').textContent='';EYE.flash('delight');VOICE.say(this.lines[this.i]);},
+ startLine(){this.typing='';this.idx=0;this.acc=0;
+  const w=this.who(this.i);
+  $('ntimetext').textContent='';
+  $('ntimetext').classList.toggle('carrot',w==='carrot');
+  $('eye').classList.toggle('carrot',w==='carrot');
+  EYE.flash('delight');VOICE.say(this.txt(this.i),w);},
  tap(){
-  const cur=this.lines[this.i];
+  const cur=this.txt(this.i);
   if(this.idx<cur.length){this.idx=cur.length;this.typing=cur;$('ntimetext').textContent=cur;return;}
   this.i++;
   if(this.i>=this.lines.length)this.end(); else this.startLine();
@@ -649,12 +701,15 @@ const NT={
   this.on=false;S.frozen=false;
   $('lbtop').style.height='0';$('lbbot').style.height='0';
   $('ntime').classList.remove('on');
+  $('ntimetext').classList.remove('carrot');$('eye').classList.remove('carrot');
+  $('tray').classList.remove('dim');
   const cb=this.onDone;this.onDone=null;if(cb)cb();
   if(this.pending.length&&!this.on){const nx=this.pending.shift();this.run(nx[0],nx[1]);}
  },
  update(dt){
   if(!this.on)return;
-  const cur=this.lines[this.i]; if(cur==null)return;
+  if(this.lines[this.i]==null)return;
+  const cur=this.txt(this.i);
   this.acc+=dt*34;
   while(this.acc>=1&&this.idx<cur.length){this.acc-=1;this.typing+=cur[this.idx++];if(this.idx%3===0)AU.key();}
   $('ntimetext').textContent=this.typing;
@@ -1180,22 +1235,26 @@ function expireRequest(r){
  if(r.noStrike){AU.woosh();return;}
  /* a storm is ONE failure, not eight — the thread dies together */
  if(r.link)for(const k of S.requests)if(k.link===r.link)k.noStrike=true;
- S.dayFail++;S.stats.failed++;
+ S.dayFail++;S.stats.failed++;S.stats.lifeFailed=(S.stats.lifeFailed||0)+1;
  if(S.combo>=6)N.say('combo_broken',{qty:S.combo},2,1);
  S.combo=0;S.mult=1;
  S.staplers--;AU.smash();S.shake=6;S.freezeT=.12;S.dimT=Math.max(S.dimT,.8);
  if(S.staplers>0){
-   if(Math.random()<.5)N.say('request_failed',{qty:fmtN(r.qty),item:ITEMS[r.item].short.toLowerCase()},2,1);
-   else N.say('strike',{qty:3-S.staplers},2,1);
+   if(Math.random()<.5)N.say('request_failed',{qty:fmtN(r.qty),item:ITEMS[r.item].short.toLowerCase()},2,0);
+   else N.say('strike',{qty:3-S.staplers},2,0);
  } else gameOver(false);
 }
 
 /* =================== ordering & trucks =================== */
+function bump(){S.idleT=0;if(S.dir&&S.dir.k==='still')S.dir.touched=true;}
 function orderCost(item,tier){
  if(item==='clips'&&tier.k==='pallet'&&S.day>=5)return Math.ceil(CLIP_PALLET_DEAL*S.priceMult);
  return Math.max(1,Math.ceil(ITEMS[item].price*tier.n*tier.mult*S.priceMult));
 }
 function placeOrder(item,tier){
+ if(S.day<ITEMS[item].unlocked)return false;      /* the catalog locks are law, not decoration */
+ if(tier.k==='pallet'&&S.day<5)return false;
+ bump();
  const packs=(item==='clips'&&tier.k==='pallet'&&S.day>=5)?10:tier.n;
  const cost=orderCost(item,tier);
  if(S.money<cost){N.say('money_low',{},1,10);return false;}
@@ -1208,9 +1267,10 @@ function placeOrder(item,tier){
  if(units>=5000)N.say('order_absurd',{qty:fmtN(units),item:ITEMS[item].short.toLowerCase()},2,1);
  else if(packs>=5)N.say('order_big',{item:ITEMS[item].short.toLowerCase()},1,6);
  else N.say('order_small',{},1,8);
- /* INTJ: exact-need order */
+ /* INTJ: exact-need order — distinct item/day pairs so it can't be double-tapped */
  const open=S.requests.filter(r=>r.item===item).reduce((a,r)=>a+r.remaining,0);
- if(open>0&&units===open){S.exactOrders++;if(S.exactOrders===2)award('INTJ');}
+ if(open>0&&units===open){S.exactKeys=S.exactKeys||new Set();S.exactKeys.add(item+'_'+S.day);
+   if(S.exactKeys.size>=2)award('INTJ');}
  if(tier.k==='pallet'){S.palletItems.add(item);if(S.palletItems.size>=3)award('ENTJ');}
  if(S.dir&&S.dir.k==='order'&&S.dir.item===item)obeyDir();
  if(S.money<8)N.say('money_low',{},1,25);
@@ -1221,25 +1281,31 @@ function updateOrders(dt){
  for(const o of S.orders){o.eta-=dt;if(o.eta<=0)due=true;}
  if(due&&S.truck.state==='off'){
    S.truck.state='in';S.truck.x=-90;S.truck.t=0;AU.honk();
-   S.truck.cargo=S.orders.filter(o=>o.eta<=0);
+   /* merge same-item orders into one box so bulk spam can't starve the dock */
+   const arr=S.orders.filter(o=>o.eta<=0),merged={};
+   for(const o of arr)merged[o.item]=(merged[o.item]||0)+o.packs;
+   S.truck.cargo=Object.keys(merged).map(k=>({item:k,packs:merged[k]}));
+   S.truck.dropped=0;
    S.orders=S.orders.filter(o=>o.eta>0);
  }
  const T=S.truck;
  if(T.state==='in'){T.x+=dt*420;if(T.x>=Math.min(W*.22,150)){T.state='drop';T.t=0;}}
  else if(T.state==='drop'){
    T.t+=dt;
-   if(T.t>.28&&T.cargo.length){
+   if(T.t>(T.cargo.length>4?.12:.28)&&T.cargo.length){
      const o=T.cargo.shift();
      S.boxes.push({item:o.item,packs:o.packs,taps:0,need:DAYS[S.day].taps+(o.packs>=5?1:0),age:0,squash:1,squashY:1});
+     T.dropped=(T.dropped||0)+1;
      AU.thunk();S.shake=Math.max(S.shake,2.5);T.t=0;
      if(S.boxes.length>Math.floor((W-24)/64))N.say('dock_full',{qty:S.boxes.length},1,20);
    }
-   if(!T.cargo.length&&T.t>.5){T.state='out';N.say('delivery',{qty:S.boxes.length},1,12);
+   if(!T.cargo.length&&T.t>.5){T.state='out';N.say('delivery',{qty:T.dropped||1},1,12);
      if(!S.shown.tutCarry){S.shown.tutCarry=1;N.say('tutorial_carry',{},2,1);}}
  }
  else if(T.state==='out'){T.x+=dt*430;if(T.x>W+120)T.state='off';}
 }
 function tapBox(b){
+ bump();
  b.taps++;b.squash=.86;b.squashY=.8;AU.tick();
  if(S.dir&&S.dir.k==='open')obeyDir();
  if(b.taps>=b.need){
@@ -1280,16 +1346,19 @@ function deliverTo(item,deskIdx){
  throwSupplies(item,match);
 }
 function throwSupplies(item,r){
- const qty=Math.min(S.stock[item],r.remaining,THROW_CAP[S.day]);
- if(qty<=0){N.say('out_of_stock',{item:ITEMS[item].short.toLowerCase(),name:STAFF[r.desk].name},1,14);return;}
- S.stock[item]-=qty;
+ bump();
+ r.fly=r.fly||0;
+ const qty=Math.min(S.stock[item],r.remaining-r.fly,THROW_CAP[S.day]);
+ if(qty<=0){if(S.stock[item]<=0)N.say('out_of_stock',{item:ITEMS[item].short.toLowerCase(),name:STAFF[r.desk].name},1,14);return;}
+ S.stock[item]-=qty;r.fly+=qty;
  const bin=HITS.bins.find(b=>b.k===item);
  const dt=DESK_T[r.desk],p=iso(dt[0],dt[1]);
  const n=RM?3:Math.min(12,qty);
  for(let i=0;i<n;i++)S.projs.push({x0:bin?bin.x+bin.w/2:W/2,y0:bin?bin.y:H-G.binsH,x1:p.x+rnd(-8,8),y1:p.y-G.th,t:-i*.04,dur:.42,arc:70+rnd(0,30),item});
  if(qty>12)addFloat(p.x,p.y-G.th*2.4,'-'+fmtN(qty),'#E8D9B5',15);
  setTimeout(()=>{
-   if(!S.requests.includes(r)){S.stock[item]+=0;return;}   /* expired mid-flight: supplies lost to bureaucracy */
+   if(!S.requests.includes(r)){S.stock[item]+=qty;return;}  /* died mid-flight: supplies return to the bin */
+   r.fly-=qty;
    r.remaining-=qty;
    if(r.remaining<=0)completeRequest(r,true);
  },430);
@@ -1297,6 +1366,7 @@ function throwSupplies(item,r){
  AU.woosh();
 }
 function deliverTPS(item){
+ if(!S.tps.active||S.tps.done)return;   /* the reconciliation exists only when installed (day 6) */
  if(!(item in S.tps.got))return;
  const need=TPS[item]-S.tps.got[item];
  if(need<=0)return;
@@ -1416,6 +1486,12 @@ function fireEvent(id){
    if(!pool.length)return;id=choice(pool);
  }
  S.shown['ev_'+id]=1;
+ if(id==='carrot'){
+   AU.klaxon();addFloat(W/2,H*.36,'⚠ SPECIAL GUEST ⚠','#FF8C42',17);
+   S.evt='carrot';S.evtT=34;S.cp=0;
+   NT.run(CARROT_IN);
+   return;
+ }
  const ev=EVENTS[id];if(!ev)return;
  AU.klaxon();addFloat(W/2,H*.36,'⚠ '+ev.name+' ⚠','#E06050',17);
  LINES['evt_start_'+id]=[ev.start];LINES['evt_end_'+id]=[ev.end];
@@ -1443,8 +1519,20 @@ function fireEvent(id){
  else if(id==='auditor'){for(const k of ITEM_KEYS)S.stock[k]=Math.floor(S.stock[k]*.75);S.shake=4;}
  else if(id==='poster'){S.money+=25;addFloat(W/2,H*.5,'+$25','#B9E4A5',18);}
 }
+function carrotPrank(i){
+ const p=CARROT_PRANKS[i];
+ N.direct(p);
+ if(p.fx==='rain'){S.rainT=9;for(const o of S.orders)o.eta+=6;}
+ else if(p.fx==='zap'){
+   const b=S.boxes.pop();
+   if(b){const dy=H-G.binsH-G.dockH/2;burstParts(W*.5,dy,RM?4:18,['#FF8C42','#FFB066','#C9A46C'],1);AU.smash();S.shake=4;}
+   S.money+=8;addFloat(W/2,H*.5,'+$8 DAMAGES','#FFB066',14);
+ }
+ else if(p.fx==='dial'){S.dial=clamp(S.dial+choice([-2,2]),-5,5);AU.tick();}
+}
 function endEvent(){
  const id=S.evt;if(!id)return;
+ if(id==='carrot'){S.evt=null;NT.run(CARROT_OUT);return;}
  N.say('evt_end_'+id,{},1,1);
  if(id==='paper_cut')S.slowRunners=false;
  if(id==='stapler_recall')S.priceMult=1;
@@ -1459,7 +1547,12 @@ function updateEvents(dt){
  }
  if(S.evt){
    S.evtT-=dt;
-   if(S.evt==='password'){
+   if(S.evt==='carrot'){
+     const marks=[26,17,8];
+     if(S.cp<3&&S.evtT<=marks[S.cp]){carrotPrank(S.cp);S.cp++;}
+     if(S.evtT<=0)endEvent();
+   }
+   else if(S.evt==='password'){
      S.drawer.evtT-=dt;
      if(S.drawer.evtTaps>=5){S.slowT=5;AU.slowmo();endEvent();}
      else if(S.drawer.evtT<=0)endEvent();
@@ -1512,6 +1605,7 @@ function binTapped(k){
  if(S.binSeq.length===4&&alpha.every((x,i)=>S.binSeq[i]===x)&&ITEM_KEYS.every(x=>S.day>=ITEMS[x].unlocked))award('ISTJ');
 }
 function workerTapped(i){
+ if(i>=activeDesks())return;   /* empty desks don't count as checked-on employees */
  S.workersTapped.add(i);
  const dt=DESK_T[i],p=iso(dt[0],dt[1]);
  addFloat(p.x,p.y-G.th*2.4,'☺','#F6F0DE',13);
@@ -1540,7 +1634,9 @@ function pokeEye(){
    S.eyePokes++;
    if(S.eyePokes===1)N.say('eye1',{},2,1);
    else if(S.eyePokes===2)N.say('eye2',{},2,1);
-   else if(S.eyePokes>=3){S.eyeGift=true;S.staplers=Math.min(3,S.staplers+1);AU.thwack();N.say('eye3',{},2,1);}
+   else if(S.eyePokes>=3){S.eyeGift=true;AU.thwack();
+     if(S.staplers<3){S.staplers++;N.say('eye3',{},2,1);}
+     else{S.money+=10;addFloat(W/2,H*.4,'+$10','#B9E4A5',14);N.say('eye3b',{},2,1);}}
  }else{
    S.eyePostGift++;
    if(S.eyePostGift===5)award('INTP');
@@ -1549,15 +1645,17 @@ function pokeEye(){
 
 /* =================== day flow & set pieces =================== */
 function takeSnapshot(){
+ const st=S.stats;
  S.snapshot={money:S.money,staplers:S.staplers,stock:{...S.stock},hires:S.hires,
    odo:S.odo,kudos:S.kudos,gary:S.gary,dial:S.dial,eyeGift:S.eyeGift,
    orders:S.orders.map(o=>({...o})),
-   done:S.stats.done,failed:S.stats.failed};
+   stats:{done:st.done,failed:st.failed,earned:st.earned,spent:st.spent,
+     ordered:st.ordered,boxes:st.boxes,garyBoxes:st.garyBoxes,obeyed:st.obeyed,ignored:st.ignored}};
 }
 function restoreSnapshot(){
  const s=S.snapshot;if(!s)return;
  S.money=s.money;S.staplers=s.staplers;S.stock={...s.stock};S.odo=s.odo;S.kudos=s.kudos;
- S.dial=s.dial;S.eyeGift=s.eyeGift;S.stats.done=s.done;S.stats.failed=s.failed;
+ S.dial=s.dial;S.eyeGift=s.eyeGift;Object.assign(S.stats,s.stats);
  S.gary=s.gary;S.orders=s.orders.map(o=>({...o}));S.truck.state='off';S.truck.cargo=[];
  S.runners.length=0;for(let i=0;i<s.hires;i++)S.runners.push({x:7,y:6.5,tx:7,ty:6.5,seed:ri(0,9),color:RUNNER_COLORS[i],carry:null,claim:null,st:'idle',cool:0});
  S.hires=s.hires;
@@ -1575,12 +1673,16 @@ function startDay(d,isRetry){
  S.spawnT=3.5;S.evt=null;S.priceMult=1;S.slowRunners=false;S.soggy=false;S.dir=null;S.dirCool=18;
  S.combo=0;S.mult=1;S.sel=null;S.drag=null;S.envelope=null;
  DAYS[d].events.forEach(e=>e.done=false);
+ N.queue.length=0;                       /* yesterday's barks don't survive the night */
  if(!isRetry){takeSnapshot();}else{restoreSnapshot();S.stats.retries++;}
  /* solvency floor: a day must always be winnable from its opening state (architect P0).
-    day 6 needs the full TPS shopping list (~$40), so the floor rises. */
- const floor=d===6?50:15;
- if(S.money<floor){S.money=Math.max(S.money,d===6?55:20);
-   if(!S.pettyUsed){S.pettyUsed=true;N.say('petty_cash',{},2,1);}}
+    Stock-rich players get no bailout (FrameOne's wage-refund farm), and day 6 tops up
+    only if the TPS shopping list is genuinely unaffordable. */
+ const stockValue=ITEM_KEYS.reduce((a,k)=>a+S.stock[k]/ITEMS[k].per*ITEMS[k].price,0);
+ if(d===6){
+   const short=S.stock.clips<TPS.clips||S.stock.paper<TPS.paper||S.stock.stamps<TPS.stamps;
+   if(short&&S.money<50){S.money=Math.max(S.money,55);N.say('petty_cash',{},2,30);}
+ }else if(S.money<15&&stockValue<40){S.money=Math.max(S.money,20);N.say('petty_cash',{},2,30);}
  if(d===3&&!S.gary){S.gary=true;}
  if(d===3&&!S.button.present){S.button.present=true;S.button.roseAt=nowT;}
  if(d===6){S.tps.active=true;S.tps.got={clips:0,paper:0,stamps:0};S.tps.done=false;}
@@ -1589,9 +1691,9 @@ function startDay(d,isRetry){
  if(d===5&&S.dial<=-2)setTimeout(()=>{N.say('comply_lo',{},2,1);for(const o of S.orders)o.eta+=20;},9000);
  S.phase='play';
  updateTray();
- if(isRetry)N.say('retry',{},2,1);
+ if(isRetry)N.say('retry',{qty:S.stats.retries+1},2,0);
  else if(d>1)N.say('milestone_day',{},1,1);
- if(d===6)setTimeout(()=>N.say('tps_begin',{},2,1),1200);
+ if(d===6)N.say('tps_begin',{},2,1);      /* announce BEFORE any leftover stamp can land */
  if(DAYS[d].desks>DAYS[d-1>0?d-1:1].desks&&d>1)setTimeout(()=>N.say('level_up',{},1,1),9000);
 }
 function showMemo(html,btn,cb,cls){
@@ -1629,8 +1731,9 @@ function gameOver(won){
  S.phase='end';
  const st=S.stats;
  const epithet=S.dial>=3?`TEACHER'S PET`:S.dial<=-3?`INSUBORDINATE (career-track)`:S.dial===0?`Aggressively unremarkable. My least favorite genre of human.`:S.dial>0?`Broadly compliant`:`Quietly defiant`;
- const grade=won?(st.failed===0?'A+':st.failed<=2?'A−':st.failed<=5?'B+':'B'):'F';
- const title=S.kudos>4000?'CHIEF STATIONERY OFFICER':S.kudos>2500?'VP OF PHYSICAL OPERATIONS':S.kudos>1200?'DIRECTOR OF TANGIBLE ASSETS':S.kudos>500?'MANILA MIDDLE MANAGER':'REQUISITION WRANGLER';
+ const lifeFail=Math.max(st.failed,st.lifeFailed||0);   /* retries don't launder the record */
+ const grade=won?((lifeFail===0&&st.retries===0)?'A+':lifeFail<=2?'A−':lifeFail<=5?'B+':'B'):'F';
+ const title=S.kudos>35000?'CHIEF STATIONERY OFFICER':S.kudos>18000?'VP OF PHYSICAL OPERATIONS':S.kudos>8000?'DIRECTOR OF TANGIBLE ASSETS':S.kudos>2500?'MANILA MIDDLE MANAGER':'REQUISITION WRANGLER';
  const rows=`<table>
   <tr><td>Stationery handled</td><td>${fmtN(S.odo)} units</td></tr>
   <tr><td>Requisitions fulfilled / failed</td><td>${st.done} / ${st.failed}</td></tr>
@@ -1838,6 +1941,9 @@ function step(dt){
  updateEvents(dt);
  maybeDirective(dt);
  updateDirective(dt);
+ /* CARROT's indoor precipitation */
+ if(S.rainT>0){S.rainT-=dt;
+   if(!RM)for(let i=0;i<3;i++)addPart(rnd(20,W-20),G.officeTop+10,rnd(-8,8),rnd(30,80),'#F6F0DE',rnd(2,4),'rect',rnd(.9,1.6));}
  /* box wobble */
  for(const b of S.boxes){b.age+=dt;b.wobble=b.age>12;
    b.squash=lerp(b.squash,1,dt*10);b.squashY=lerp(b.squashY,1,dt*10);}
@@ -1846,9 +1952,10 @@ function step(dt){
  if(S.day===6&&!S.button.spent&&S.button.present&&S.t>d.len*.3&&!S.shown.selfPress&&!S.tps.done){
    S.shown.selfPress=1;pressButton(true);}
  /* idle */
- S.idleT+=dt;S.stats.idle+=S.requests.length?dt:0;
- if(S.idleT>15&&S.requests.length&&!S.shown['idle'+Math.floor(S.t/15)]){
-   S.shown['idle'+Math.floor(S.t/15)]=1;
+ S.idleT+=dt;S.stats.idle+=S.idleT>3?dt:0;
+ const idleKey='idle'+S.day+'_'+Math.floor(S.t/15);
+ if(S.idleT>15&&S.requests.length&&!S.shown[idleKey]){
+   S.shown[idleKey]=1;
    if(S.idleT>35){S.idleLongFired=true;N.say('idle_long',{},1,30);}
    else N.say('idle_short',{},1,20);
  }
