@@ -560,8 +560,7 @@ const VOICE={
  init(){try{this.on=localStorage.getItem('cad_voice')!=='off';}catch(e){}
    if(this.sp)this.sp.onvoiceschanged=()=>this.pick();},
  pick(){if(!this.sp)return;const vs=this.sp.getVoices();if(!vs.length)return;
-   /* the CARROT register: chipper female robot first */
-   const pref=['Samantha','Google UK English Female','Google US English','Zira','Aria','Jenny','Karen','Victoria','Moira','Tessa'];
+   const pref=['Daniel','Google UK English Male','Alex','Samantha','Google US English'];
    this.v=null;
    for(const p of pref){const f=vs.find(x=>x.name.indexOf(p)>=0&&x.lang.indexOf('en')===0);if(f){this.v=f;break;}}
    if(!this.v)this.v=vs.find(x=>x.lang&&x.lang.indexOf('en')===0)||vs[0];},
@@ -570,7 +569,7 @@ const VOICE={
    try{this.sp.cancel();
      const u=new SpeechSynthesisUtterance(String(text).replace(/[—–]/g,', ').replace(/[{}▌]/g,''));
      if(this.v)u.voice=this.v;
-     u.rate=1.1;u.pitch=1.0;u.volume=.9;
+     u.rate=1.06;u.pitch=.8;u.volume=.9;
      this.sp.speak(u);}catch(e){}},
  stop(){if(this.sp)try{this.sp.cancel();}catch(e){}},
  warmup(){if(!this.sp)return;this.pick();
