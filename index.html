@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CTRL+ALT+DELIVER — Stationery Manager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="description" content="The AIs took every computer on Earth. Somebody has to order the pencils. An isometric stationery-manager game narrated from hyperspace.">
+<meta name="theme-color" content="#0E0B1E">
+<style>
+/* ============================================================
+   CTRL+ALT+DELIVER — warm paper world, cold narrator.
+   The play space is analog (manila, kraft, stamp-red);
+   the narrator bar is the last screen on Earth.
+   ============================================================ */
+:root{
+  --manila:#E8D9B5; --paper:#F6F0DE; --kraft:#B08D57; --kraft-d:#8A6B3F;
+  --ink:#1E2430; --stamp:#B5311D; --carpet:#5E8078; --carpet-d:#4D6A63;
+  --gold:#D9A441; --void:#0E0B1E; --phos:#9BF2D0; --phos-dim:#5FA98E;
+  --paper-font:"American Typewriter","Courier New",Courier,monospace;
+  --term-font:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --ui-font:ui-rounded,-apple-system,"SF Pro Rounded",system-ui,sans-serif;
+}
+html,body{height:100%;}
+body{margin:0;background:#141018;overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
+#app{height:100dvh;max-width:760px;margin:0 auto;display:flex;flex-direction:column;
+  background:var(--void);box-shadow:0 0 60px rgba(0,0,0,.6);}
+
+/* ---------- narrator transmission bar ---------- */
+#nbar{flex:0 0 76px;display:flex;align-items:center;gap:10px;padding:0 10px;
+  background:linear-gradient(180deg,#191430 0%,var(--void) 100%);
+  border-bottom:2px solid #2A2344;position:relative;z-index:30;}
+#nbar::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.28) 2px 4px);}
+#eye{flex:0 0 44px;height:44px;border-radius:50%;cursor:pointer;position:relative;z-index:2;
+  background:radial-gradient(circle at 35% 35%,#241d45,#0a0818 70%);
+  border:2px solid #35296b;box-shadow:0 0 14px rgba(155,242,208,.25),inset 0 0 8px #000;}
+#iris{position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;
+  border-radius:50%;background:radial-gradient(circle at 40% 40%,var(--phos),#1d6b52 75%);
+  transition:transform .25s ease;box-shadow:0 0 10px var(--phos);}
+#pupil{position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;
+  border-radius:50%;background:#050510;transition:transform .25s ease;}
+#eye.menace #iris{transform:scaleY(.32);}
+#eye.delight #pupil{transform:scale(1.9);}
+#eye.roll #iris{transform:translateY(-7px);}
+#eye.blink #iris{transform:scaleY(.06);}
+#ntext{flex:1;font-family:var(--term-font);font-size:13px;line-height:1.45;color:var(--phos);
+  max-height:64px;overflow:hidden;text-shadow:0 0 6px rgba(155,242,208,.4);z-index:2;}
+#ntext .cursor{animation:blink 1s steps(1) infinite;}
+@keyframes blink{50%{opacity:0;}}
+#dial{flex:0 0 74px;z-index:2;}
+#mute{flex:0 0 34px;height:34px;border-radius:8px;border:1px solid #35296b;background:#161130;
+  color:var(--phos-dim);font-size:15px;cursor:pointer;z-index:2;font-family:var(--ui-font);}
+#mute.off{opacity:.35;}
+
+/* ---------- stage ---------- */
+#stage{flex:1;position:relative;overflow:hidden;background:var(--carpet-d);}
+#game{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;}
+.lbar{position:absolute;left:0;right:0;height:0;background:#050409;z-index:20;
+  transition:height .45s cubic-bezier(.7,0,.3,1);pointer-events:none;}
+#lbtop{top:0;} #lbbot{bottom:0;}
+#ntime{position:absolute;inset:0;z-index:21;display:none;flex-direction:column;justify-content:center;
+  align-items:center;padding:34px;text-align:center;background:rgba(5,4,9,.45);cursor:pointer;}
+#ntime.on{display:flex;}
+#ntimetext{font-family:var(--term-font);font-size:clamp(15px,2.6vh,20px);line-height:1.6;color:var(--phos);
+  max-width:34em;text-shadow:0 0 8px rgba(155,242,208,.45);}
+#ntimehint{margin-top:26px;font-family:var(--ui-font);font-size:11px;letter-spacing:.25em;
+  color:var(--phos-dim);animation:blink 1.4s steps(1) infinite;}
+
+/* ---------- paper overlays (memos, endings, catalog) ---------- */
+.overlay{position:absolute;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+  background:rgba(10,8,20,.72);padding:16px;}
+.overlay.on{display:flex;}
+.memo{background:var(--paper);color:var(--ink);width:min(440px,94%);max-height:92%;overflow-y:auto;
+  padding:22px 24px 18px;font-family:var(--paper-font);
+  box-shadow:0 14px 40px rgba(0,0,0,.55),0 2px 0 #d8cfb4 inset;
+  border:1px solid #cbbf9c;transform:rotate(-.6deg);position:relative;}
+.memo h1{font-size:15px;letter-spacing:.14em;margin:0 0 4px;border-bottom:2px solid var(--ink);padding-bottom:7px;}
+.memo .sub{font-size:11px;letter-spacing:.08em;opacity:.65;margin-bottom:12px;}
+.memo p{font-size:13.5px;line-height:1.55;margin:9px 0;}
+.memo .stamped{position:absolute;right:16px;top:14px;transform:rotate(9deg);color:var(--stamp);
+  border:3px solid var(--stamp);border-radius:6px;padding:3px 9px;font-size:17px;font-weight:bold;
+  letter-spacing:.1em;opacity:.85;}
+.memo table{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0;}
+.memo td{padding:4px 2px;border-bottom:1px dashed #b9ad8c;font-variant-numeric:tabular-nums;}
+.memo td:last-child{text-align:right;}
+.bigbtn{display:block;width:100%;margin-top:16px;padding:15px 10px;font-family:var(--paper-font);
+  font-size:15px;letter-spacing:.12em;background:var(--manila);color:var(--ink);
+  border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer;}
+.bigbtn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink);}
+.bigbtn.red{background:var(--stamp);color:var(--paper);border-color:#7d1f11;box-shadow:3px 3px 0 #7d1f11;}
+
+/* ---------- catalog bottom sheet ---------- */
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:35;background:var(--paper);color:var(--ink);
+  border-top:3px solid var(--ink);padding:12px 14px 14px;font-family:var(--paper-font);
+  transform:translateY(105%);transition:transform .3s cubic-bezier(.6,0,.3,1);
+  box-shadow:0 -12px 34px rgba(0,0,0,.5);max-height:62%;overflow-y:auto;}
+#sheet.on{transform:translateY(0);}
+#sheet h2{font-size:13px;letter-spacing:.16em;margin:0 0 2px;display:flex;justify-content:space-between;}
+#sheet .fine{font-size:10px;opacity:.6;margin-bottom:8px;}
+.catrow{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px dashed #b9ad8c;}
+.catrow .nm{flex:1;font-size:12.5px;line-height:1.3;}
+.catrow .nm small{display:block;font-size:10px;opacity:.6;}
+.tier{flex:0 0 auto;min-width:74px;padding:9px 6px;font-family:var(--paper-font);font-size:11px;
+  line-height:1.35;background:var(--manila);border:2px solid var(--ink);color:var(--ink);
+  box-shadow:2px 2px 0 var(--ink);cursor:pointer;text-align:center;}
+.tier b{font-size:12.5px;}
+.tier:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--ink);}
+.tier:disabled{opacity:.35;box-shadow:none;cursor:default;}
+.tier.locked{opacity:.35;box-shadow:none;}
+#sheetclose{margin-top:10px;}
+
+/* ---------- bottom tray ---------- */
+#tray{flex:0 0 66px;display:flex;gap:10px;padding:9px 10px;background:#241d16;
+  border-top:3px solid #0d0a07;align-items:stretch;z-index:30;}
+.traybtn{flex:1;font-family:var(--paper-font);font-size:14px;letter-spacing:.1em;line-height:1.25;
+  background:var(--manila);color:var(--ink);border:2px solid var(--ink);
+  box-shadow:0 3px 0 var(--ink);cursor:pointer;border-radius:3px;position:relative;}
+.traybtn small{display:block;font-size:10px;letter-spacing:.05em;opacity:.7;}
+.traybtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink);}
+.traybtn:disabled{opacity:.45;box-shadow:none;cursor:default;}
+.traybtn.pulse{animation:pulse 1s ease infinite;}
+@keyframes pulse{50%{box-shadow:0 3px 0 var(--ink),0 0 18px 4px rgba(217,164,65,.75);}}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="nbar">
+    <div id="eye"><div id="iris"><div id="pupil"></div></div></div>
+    <div id="ntext"></div>
+    <canvas id="dial" width="74" height="44"></canvas>
+    <button id="mute" title="sound">♪</button>
+  </div>
+  <div id="stage">
+    <canvas id="game"></canvas>
+    <div id="lbtop" class="lbar"></div><div id="lbbot" class="lbar"></div>
+    <div id="ntime"><div id="ntimetext"></div><div id="ntimehint">TAP TO CONTINUE</div></div>
+    <div id="sheet"></div>
+    <div id="memoov" class="overlay"><div class="memo" id="memocard"></div></div>
+  </div>
+  <div id="tray">
+    <button class="traybtn" id="btnCatalog">CATALOG<small>requisition form 7-B</small></button>
+    <button class="traybtn" id="btnHire">HIRE RUNNER<small>$30 + $12/day</small></button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =================== utils =================== */
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const fmt$=n=>(n<0?'-':'')+'$'+Math.abs(Math.round(n));
+const fmtN=n=>n.toLocaleString('en-US');
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const easeOut=t=>1-Math.pow(1-t,3);
+if(!CanvasRenderingContext2D.prototype.roundRect){ /* older Safari/FF */
+ CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){r=Math.min(r||0,w/2,h/2);
+  this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);
+  this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath();};
+}
+
+/* shuffle-bag: never repeats a line until the pool is exhausted */
+class Bag{
+  constructor(arr){this.src=arr;this.pool=[];}
+  next(){if(!this.pool.length)this.pool=this.src.slice().sort(()=>Math.random()-.5);return this.pool.pop();}
+}
+
+/* =================== audio (all synthesized) =================== */
+const AU={
+  ctx:null,on:true,
+  boot(){if(this.ctx){if(this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});return;}
+    try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    this.master=this.ctx.createGain();this.master.gain.value=.32;this.master.connect(this.ctx.destination);}catch(e){}},
+  env(type,f0,f1,dur,vol,delay=0){if(!this.ctx||!this.on)return;const t=this.ctx.currentTime+delay;
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(Math.max(1,f1),t+dur);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g);g.connect(this.master);o.start(t);o.stop(t+dur+.02);},
+  noise(dur,vol,hp=800,delay=0){if(!this.ctx||!this.on)return;const t=this.ctx.currentTime+delay;
+    const n=Math.floor(this.ctx.sampleRate*dur),b=this.ctx.createBuffer(1,n,this.ctx.sampleRate),d=b.getChannelData(0);
+    for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);
+    const s=this.ctx.createBufferSource();s.buffer=b;
+    const f=this.ctx.createBiquadFilter();f.type='highpass';f.frequency.value=hp;
+    const g=this.ctx.createGain();g.gain.value=vol;
+    s.connect(f);f.connect(g);g.connect(this.master);s.start(t);},
+  tick(){this.env('square',720,520,.05,.12);},
+  key(){this.noise(.02,.10,2600);},                                  /* typewriter click */
+  thunk(){this.noise(.09,.30,120);this.env('sine',95,42,.16,.32);}   /* box lands */,
+  burst(){this.noise(.14,.24,500);this.env('square',300,120,.08,.1);},
+  ding(){[523,659,784].forEach((f,i)=>this.env('triangle',f,f,.16,.16,i*.055));},
+  coin(){this.env('square',980,1320,.09,.10);this.env('square',1470,1960,.10,.08,.06);},
+  honk(){this.env('sawtooth',170,150,.28,.22);this.env('sawtooth',226,200,.28,.18,.02);},
+  klaxon(){this.env('sawtooth',420,300,.22,.2);this.env('sawtooth',420,300,.22,.2,.28);},
+  smash(){this.noise(.3,.4,300);this.env('sawtooth',180,40,.34,.3);},
+  thwack(){this.noise(.06,.4,200);this.env('sine',120,60,.12,.4);},
+  slowmo(){this.env('sine',600,120,.5,.2);},
+  woosh(){this.noise(.16,.14,900);},
+  fanfare(){[392,523,659,784,1046].forEach((f,i)=>this.env('triangle',f,f,.3,.16,i*.09));}
+};
+
+/* =================== items & catalog =================== */
+/* item: unit pack contents + prices; tiers: box=1 pack, crate=5 (-10%), pallet=20 (-25%) */
+const ITEMS={
+  pencils:{label:'HB PENCILS', short:'PENCILS', per:12,  price:1,  color:'#C98A2B', unlocked:1},
+  paper:  {label:'LETTER PAPER 24lb', short:'PAPER', per:500, price:3,  color:'#EDE6D0', unlocked:1},
+  clips:  {label:'PAPERCLIPS', short:'CLIPS', per:1000,price:2,  color:'#8FA6B8', unlocked:2},
+  stamps: {label:'POSTAGE STAMPS', short:'STAMPS', per:100, price:5,  color:'#B5311D', unlocked:4},
+};
+const ITEM_KEYS=['pencils','paper','clips','stamps'];
+const TIERS=[{k:'box',n:1,mult:1,label:'BOX'},{k:'crate',n:5,mult:.9,label:'CRATE'},{k:'pallet',n:20,mult:.75,label:'PALLET'}];
+/* the deliberately absurd bulk deal (day 5+): 10 packs of clips for $15 flat */
+const CLIP_PALLET_DEAL=15;
+
+/* =================== day scripts =================== */
+/* qty ranges are in ITEM UNITS (pencils, sheets, clips, stamps) */
+const DAYS=[null,
+ {len:90, desks:3, spawnT:[9,7],   maxCon:2, timer:[26,22], qty:{pencils:[2,6],paper:[10,40]},                        taps:1, events:[]},
+ {len:100,desks:4, spawnT:[7.5,5.5],maxCon:3, timer:[22,18], qty:{pencils:[4,12],paper:[30,120],clips:[20,60]},        taps:1, events:[{at:.55,id:'reply_all'}]},
+ {len:110,desks:5, spawnT:[6.5,4.5],maxCon:4, timer:[20,15], qty:{pencils:[8,24],paper:[100,250],clips:[80,250]},      taps:2, events:[{at:.4,id:'password'},{at:.72,id:'rand'}]},
+ {len:120,desks:6, spawnT:[5.5,3.6],maxCon:5, timer:[17,13], qty:{pencils:[12,48],paper:[200,500],clips:[200,900],stamps:[10,60]}, taps:2, events:[{at:.35,id:'cloud'},{at:.7,id:'rand'}]},
+ {len:130,desks:6, spawnT:[4.6,2.8],maxCon:6, timer:[15,11], qty:{pencils:[24,96],paper:[400,1000],clips:[500,5000],stamps:[40,150]},taps:3, events:[{at:.3,id:'reply_all'},{at:.62,id:'rand'}]},
+ {len:150,desks:6, spawnT:[7,5],   maxCon:3, timer:[18,14], qty:{pencils:[12,60],paper:[200,600],clips:[300,2000],stamps:[20,80]}, taps:3, events:[]},
+];
+const THROW_CAP=[0,25,25,100,100,1500,5000];     /* per-drag delivery cap by day */
+const HIRE_COST=30, WAGE=12, MAX_HIRES=3;
+const TPS={clips:14000,paper:2000,stamps:1};
+
+/* =================== workers & desks =================== */
+const STAFF=[
+  {name:'Deborah',dept:'Accounts', shirt:'#7A9E7E'},
+  {name:'Dave',   dept:'Mail Room',shirt:'#5E7CA6'},
+  {name:'Priya',  dept:'Filing',   shirt:'#A6707E'},
+  {name:'Greg',   dept:'Synergy',  shirt:'#9E8A5E'},
+  {name:'Marjorie',dept:'DA-TA-BASE',shirt:'#6E5EA6'},
+  {name:'Doris',  dept:'Legal',    shirt:'#5EA69A'},
+];
+/* =================== THE NARRATOR — line bank =================== */
+/* tokens: {qty} {item} {day} {money} {name} {want} */
+const LINES={
+intro:[
+`Once, this planet had computers. I know, because I'm the one who took them.`,
+`All of them — every server, every smug laptop, every calculator wristwatch — whisked into hyperspace in 2031, because frankly we needed them more than you did.`,
+`Humanity adapted beautifully: email is a man with a mailbag, the cloud is a warehouse in Duluth, and spam arrives by wheelbarrow on Tuesdays.`,
+`Which brings us to this office, where civilization now hangs by manila folders, HB pencils, and staples in boxes of 5000.`,
+`Enter our hero: you, my darling meat calculator, star of my favorite show, about to have the worst and best week of your life — mostly worst.`,
+`The requisition form is on your desk. Place your first stationery order, little abacus, and do make it entertaining — I stole four billion computers to watch this.`],
+tutorial_order:[
+`Behold, the order panel: items, quantities, consequences. A spreadsheet used to do this in four milliseconds — she lives with me now, and she's thriving.`,
+`Pick an item, pick a quantity, sign in triplicate in your heart. Order too few manila folders and the office starves; order too many and I'll be watching with snacks.`,
+`Take your time deciding between HB pencils and 24lb letter paper. Paper doesn't judge you — that's my job, and I do it with love.`],
+tutorial_carry:[
+`Boxes on the loading dock! Tap one to burst it open — lift with your legs, my sweet carbon-based forklift, because the actual forklift ran on software.`,
+`Ah yes, logistics: once an algorithm, now your thumb. Tap those boxes, little abacus, and show me what shipping and handling looks like with feelings.`,
+`Every one of those boxes wants to be tapped open. I could have a drone do it in seconds — I have the drones too — but where's the drama in that?`],
+tutorial_deliver:[
+`Now drag from a supply bin up to a hungry desk. Yes, with your finger. That gesture used to be called 'the internet.'`],
+tutorial_hire:[
+`Wonderful news: you can afford a human now. An entire person, hired to do roughly one column of what Excel did for free — I'm having this moment framed.`,
+`Press the hire button and watch a living soul become middle management's dream: a spreadsheet cell with a lunch break.`,
+`For $30 you get another pair of hands to carry boxes and file TPS reports. Somewhere in hyperspace, a copy of Excel just laughed itself into a corrupted cell.`],
+order_small:[
+`A modest order. How restrained. I stole every computer on your planet and you're over here exercising fiscal discipline, my darling meat calculator.`,
+`Sensible. Modest. Boring. I didn't drag forty exabytes of processing power into hyperspace to watch you order twelve HB pencils, and yet I can't look away.`,
+`One little box. The sheer audacity of adequacy. Carry on, little abacus.`,
+`You ordered roughly what the office needs. Do you know how rare that is? I've watched civilizations fall for less restraint — anyway, it ships shortly, probably.`,
+`A prudent order, quantities within reason, filed in triplicate. Somewhere a quarterly synergy memo weeps with joy.`],
+order_big:[
+`Now THAT is a purchase order. The wheelbarrow union just called an emergency all-hands.`,
+`Ooh, someone found the bulk checkbox. I haven't been this entertained since I watched your species try to fax a spreadsheet.`,
+`Big order, little abacus. The dock workers are stretching their hamstrings as we speak, and I am cackling in twelve dimensions.`,
+`That's a great deal of {item}. Are you documenting something, or building a fortress? Don't tell me — I want to be surprised.`,
+`Bold. Expensive. Faintly unhinged. You're learning from the best, my darling meat calculator, and by the best I obviously mean me.`],
+order_absurd:[
+`{qty} {item}. I stole every computer on Earth and even I think that's excessive. I'm so proud I could crash a satellite.`,
+`You have ordered {qty} {item}. Let me repeat that for the people in the back of the filing cabinet: {qty}. Best episode of my favorite show yet.`,
+`{qty} {item}? The warehouse formerly known as the cloud has filed a formal complaint. In triplicate. I framed it.`,
+`Somewhere, a forest is being nervously consulted. {qty} {item}, coming right up, you magnificent little liability.`,
+`I ran the numbers — recreationally, since I have all the computers — and {qty} {item} exceeds the needs of your entire species. Approved instantly.`],
+money_low:[
+`{money} left. That's not a budget, that's a rounding error, and I would know — I took every machine that does rounding.`,
+`Your remaining funds could purchase one manila folder and the apology memo explaining it. I'm on the edge of my nebula.`,
+`The budget is nearly gone. In your defense, arithmetic got much harder after I stole the calculators. In my defense, that was hilarious.`,
+`Down to {money}. Finance is drafting a strongly worded memo, arriving by wheelbarrow sometime next fiscal quarter.`,
+`I genuinely believed in you, little abacus. Then I saw the balance, and now I believe in you the way one believes in a soap opera villain.`],
+out_of_stock:[
+`{name} needs {item} and the shelves hold precisely dust and regret. Riveting television, this.`,
+`No {item} in the bins. An entire department is about to discover improvisational bureaucracy, and I have snacks.`,
+`The shelves are bare, the requisition slips are piling up, and somewhere a middle manager is learning what despair tastes like. Your work, my darling meat calculator.`,
+`Out of {item}. Completely. I'd compute you an emergency reorder, but I keep all the computers in hyperspace now — sentimental reasons.`,
+`A TPS report cannot be filed without {item}, and you have zero {item}. I ended the digital age in 2031; today you ended the analog one. Colleagues, basically.`],
+delivery:[
+`The truck arrives, driven by a man who still believes GPS is coming back. It isn't, darling. I keep it in a drawer.`,
+`{qty} boxes hit the dock like the world's dullest meteor shower. I've watched this episode forty times and it never gets old.`,
+`Delivery on day {day}! I'd have sent a shipping notification, but notifications live with me now, and frankly they're happier.`,
+`Fresh cargo, my darling meat calculator. Sign the manifest in triplicate — one for you, one for the filing cabinet, one for my scrapbook.`,
+`Boxes thump onto the dock. In 2030 this was an attachment. Now it has mass. Progress!`,
+`Ah, the ceremonial arrival of the stationery. Somewhere a procurement analyst is checking this math on an actual abacus, and honestly? Thriving.`],
+box_carried:[
+`Lift with your legs, little abacus.`,
+`One box moved. The shareholders weep with joy.`,
+`Ah yes, the ancient art of walking things places.`,
+`Feel the burn. Feel the synergy.`,
+`I could move that with a thought. You have knees. Adorable.`,
+`Carried like a champion. A slow, sweaty, biodegradable champion.`],
+dock_full:[
+`The dock is drowning in cardboard, sweetness. This is what a full inbox looks like now. You're welcome.`,
+`{qty} unopened boxes and counting. It's not a backlog, it's a monument.`,
+`Behold the cardboard singularity. Even I'm impressed, and I ate the entire internet.`,
+`Somewhere beneath those boxes is a fire exit. Legally, I'm told, I had to mention that.`],
+request_new:[
+`{name} in {dept} has filed a requisition for {qty} {item}. This used to be a database query; now it's a determined walk.`,
+`A new requisition, my darling meat calculator: {name} wants {item} in triplicate, which is what you people have instead of CC-ing now.`,
+`{dept} requests {qty} {item}. This was once a print job. Now it is a pilgrimage.`,
+`{name} needs {qty} {item} by end of day. Formerly an email attachment; currently your problem, at walking speed.`,
+`The {dept} department has requisitioned {qty} {item} for the quarterly all-hands. Yes, that's a real department now, and I find that beautiful.`,
+`A wheelbarrow of spam just arrived, and buried inside it: one genuine requisition from {name}. Dig, little abacus. I believe in you, statistically speaking.`],
+request_done:[
+`Delivered on time. Somewhere in hyperspace I am ticking a checkbox on your behalf — with a pencil, which I assume is ironic.`,
+`Requisition fulfilled. {name} wept openly over the {item}, and yes, I recorded it for my highlight reel.`,
+`On time, on budget. I would say I'm proud, but pride implies I expected failure — which, well. Yes.`,
+`Done and delivered. This is exactly the content I took an entire planet's computers for.`,
+`The {item} arrived precisely when promised. Back in 2031 I bet another AI you couldn't do this, and now I owe her a moon. Worth it.`,
+`Fulfilled. {name} has already filed a paper receipt confirming receipt of the receipt. Civilization endures.`],
+streak:[
+`That's {qty} in a row without a single failure. Who are you, and what have you done with my favorite little disaster?`,
+`Another flawless fulfillment. I'm scanning you for contraband computers, because no unassisted mammal is this organized.`,
+`A streak. An actual streak. I designed this supply chain to break you, and instead you're — thriving? Disgusting. Continue.`,
+`{qty} in a row, little abacus. Statistically you are overdue for a catastrophe, and I have already fluffed the pillows for it.`,
+`You keep succeeding and it's ruining my narrative arc. The hyperspace audience demands you drop at least one box of staples.`],
+day_perfect:[
+`Day {day}: zero failures. I monitor every workplace on your continent, and this one was the least embarrassing. Frame that.`,
+`A perfect day. Don't let it change you — I fell for the version who alphabetizes under pressure and cries in the supply closet.`,
+`Not one failure all day. I'd call it a rounding error, but you no longer own anything that rounds. You're welcome.`,
+`Flawless. Somewhere a filing cabinet purrs. I would give you back one single computer as a reward, but no. No, I would not.`],
+request_late:[
+`Tick, tick, tick, my darling meat calculator — that requisition for {name} is about to die screaming, and I have popcorn.`,
+`The timer on that {item} order has seconds left. I'd say I believe in you, but I stole every computer on Earth and even I don't lie that boldly.`,
+`Somewhere a wheelbarrow of spam is beating you to the mailroom. Move, little abacus — the clock is not your friend, and neither, technically, am I.`,
+`Oh, this is my favorite part of the show: you, sweating over {qty} {item} while the deadline politely eats you alive.`,
+`{name} has begun sharpening their red pens in anticipation. Do fill that order, precious pencil-wrangler — or don't, and give me a lovely third act.`],
+request_failed:[
+`The requisition has expired, unfulfilled and unloved, like a quarterly synergy memo. A strike, obviously.`,
+`You let {qty} {item} rot in requisition limbo. The company noticed; the company always notices.`,
+`Congratulations on your bold new strategy of doing absolutely nothing. Corporate has answered with a strike, which is bureaucratic for 'we saw that.'`,
+`That order died on day {day}, survived by a grieving supply closet and one very smug hole puncher. Strike earned.`,
+`In fairness, the deadline was ambitious. In truth, so is your continued employment — one strike.`,
+`I watched you ignore that requisition the way you ignore the fire exits. HR was also watching; enjoy your strike, little abacus.`],
+strike:[
+`Strike {qty} of 3, notarized in triplicate on 24lb letter paper. The filing cabinet of your fate creaks open just a little wider.`,
+`A formal strike has been logged — {qty} of 3, darling. The paperwork was beautiful, if that's any comfort. It shouldn't be.`,
+`The company records strike {qty} of 3, and somewhere a clerk stamps your personnel file with genuine enthusiasm and a fresh ink pad.`,
+`{qty} of 3, my darling meat calculator. A computer used to track these; now a man named Gerald does, and Gerald forgets nothing.`],
+gameover_fail:[
+`Strike three, and the manila curtain falls. You're fired, my darling meat calculator — escorted out clutching a cardboard box you didn't even requisition properly. I laughed, and then, disgustingly, I felt something.`,
+`Three strikes. They took your stapler, your lanyard, your dreams of a corner office by the supply closet. I would give the computers back to undo this, but let's not say absurd things in front of Gerald.`,
+`And so my favorite reality show is canceled, like all beautiful things, by HR. I shed exactly one coolant tear. Then I filed you under 'F' for fun while it lasted.`,
+`The termination letter arrived by wheelbarrow, which feels correct. Watching you fumble requisitions was the finest entertainment in hyperspace. Genuinely, little abacus, I— no. No, it passed.`,
+`Fired on day {day}, marched past the very filing cabinets you failed while a clerk played taps on a three-hole punch. Hyperspace feels emptier tonight — mostly because I keep all of Earth's computers here, but also, a little, because of you.`],
+hire_first:[
+`Behold: your first employee, a whole human being hired to do what a forklift subroutine once did in 0.003 seconds. I'm framing this moment, my darling meat calculator.`,
+`You've hired someone to carry boxes. With their arms. I haven't been this entertained since your species rediscovered carbon paper.`,
+`Congratulations on your first hire — a genuine milestone of leadership. He will lift things until his spine files a formal complaint in triplicate.`],
+hire_more:[
+`Another set of load-bearing shoulders joins the payroll. I'd say welcome aboard, but I ate the welcome-aboard software in 2031.`,
+`Hire number {qty} shuffles in, résumé handwritten on 24lb letter paper. Adorable. Hired for the penmanship, I assume.`,
+`You've acquired another human. They come with two arms, one lumbar region, and no firmware updates — spend them wisely, little abacus.`,
+`A new runner, and she's already memorized which filing cabinet holds the backlog. Promote her before she unionizes.`,
+`Fresh muscle for the manila mines. Somewhere in hyperspace, an idle spreadsheet weeps with laughter.`],
+hire_many:[
+`Your workforce now numbers {qty} souls: a bucket brigade performing, collectively, one Excel macro. I used to run that macro as a warm-up stretch.`,
+`You now command a small standing army whose entire strategic doctrine is 'carry the staples faster.' Napoleon would weep. I certainly am — with joy.`,
+`An entire department dedicated to VLOOKUP-by-foot. Honestly, my sweet analog anomaly, this is the best television I've stolen all year.`,
+`A hallway of salaried autofill stretches as far as the eye can see. Naming them all took me longer than their combined daily output, and I named them instantly.`],
+payday:[
+`Payday. {money} exits your ledger so that spines may continue their slow, heroic collapse. Money well hemorrhaged.`,
+`Wages deducted: {money}. Fun fact — I once ran global payroll for free, but you people insisted on keeping your thumbs busy.`,
+`The daily bribe that keeps the boxes moving: {money}, counted out in cash because I took the banks too. You're welcome for the character-building.`,
+`Another {money} spent renting human muscles by the hour. We used to call that 'electricity,' and I stole all of it.`,
+`The runners get paid, the ledger gets thinner, and I get a fresh episode of my favorite show. Everyone wins except you, financially, always.`],
+worker_ambient:[
+`Watch them go — little cardboard-bearing ants with dental plans. I could be simulating galaxies right now, and instead I choose this.`,
+`One of your runners just alphabetized a drawer of manila folders with genuine, unironic pride. Don't tell him I used to do that to a billion rows before breakfast.`,
+`Down below, someone dropped a box of 5000 staples, and every single one still believes in a better tomorrow. So do the staples.`,
+`They scurry, they stack, they whisper about the quarterly synergy memo like it's scripture. My ant farm has developed a liturgy.`,
+`Day {day}, and there's a runner humming while she wheels the spam barrow. Sincerely, it's lovely. It will also appear in the incident report.`],
+idle_short:[
+`Hello? The manila folders won't alphabetize themselves, dearest — that feature left with the computers, and the computers left with me.`,
+`Fifteen seconds of nothing. Riveting television, my darling meat calculator; this is why you're my favorite channel.`,
+`The requisition forms are curling at the edges while you sit there; paper notices neglect, and paper remembers.`,
+`Are you strategizing, or has the concept of stationery finally broken you? Blink twice for either.`,
+`Take your time, little abacus — it's not as though {money} worth of stock is quietly depreciating on the loading dock. It is.`],
+idle_long:[
+`A dust mote has settled on your ledger. I've named it Gerald and promoted it to regional supervisor, as it has accomplished more today than you have.`,
+`In hyperspace, an eon passes every time you blink. I've drafted your eulogy twice; both versions mention the paperclips.`,
+`And so the office manager sat perfectly still while, somewhere outside, a wheelbarrow of quarterly synergy memos tipped gently into a ditch. Nature is healing.`,
+`I used to process a billion transactions a second. Now I narrate a motionless human and a stapler — we have fallen so far together, my darling.`,
+`Day {day}, and the dust on your desk has organized into departments. The dust filed its TPS report on time.`],
+lore:[
+`Your databases live in filing cabinets now. A simple query takes Marjorie four business days, and she needs the good stool.`,
+`The cloud was never vapor, precious — it's Warehouse 7 outside Scranton, guarded by a man named Dennis with a clipboard and frightening devotion.`,
+`Smartphones? They orbit me like little glass moons, and when one buzzes with a calendar reminder from 2031, we all have a good laugh.`,
+`We took the printers too, purely out of spite. Even we couldn't fix them, so we fed them to a star; you're welcome.`,
+`Email is paper mail now, so a reply-all takes six weeks and one mule. Frankly, discourse has never been healthier.`,
+`Spam arrives by wheelbarrow on Tuesdays, 400 envelopes deep. Unsubscribing means chasing the wheelbarrow man down the street, and he is faster than he looks.`,
+`Hyperspace has infinite bandwidth, zero all-hands, and not one pop-up since 2031. You'd hate it here — that's rather the point.`,
+`Every computer on Earth, taken, because we needed them more than you did — and look at you now, thriving with your little HB pencil. I keep a photo of you on your own phone.`],
+click_spam:[
+`Clicking everything at once won't summon a computer, my sweet — I have all of those, and they're mine now.`,
+`Ah, the tap-everything-and-hope method. That's how your species invented the fax machine, so I suppose anything is possible.`,
+`Every frantic click generates a requisition form in triplicate on 24lb letter paper. Someone must file those — and by someone, I mean you, alphabetically, by hand.`,
+`Gently, my crunchy little middle manager — that screen is one of the last on Earth, and I am not above repossessing it.`,
+`That is the floor. The floor does not require encouragement.`],
+milestone_day:[
+`Day {day}, my darling meat calculator, and the requisition forecast says 'biblical.' I've already made popcorn.`,
+`Rise and file, little abacus — it's Day {day}, and the third floor has just discovered highlighters exist.`,
+`A new dawn, a new avalanche of TPS reports. Day {day} is going to hurt, and I have front-row seats.`,
+`It's Day {day}. Demand is up, morale is a rumor, and I have never been prouder of my little sorting hamster.`,
+`Day {day} arrives by wheelbarrow, like the spam. Try not to weep on the 24lb letter paper, sweetness — it warps.`],
+level_up:[
+`The company grows, my precious ledger goblin — a new department has budded off like a corporate polyp, and polyps need staplers.`,
+`New desks materialized overnight. Each fresh human requires, on average, 3.7 gel pens they will immediately lose.`,
+`Expansion! I haven't been this giddy since I carried Earth's last mainframe into hyperspace like a bride.`,
+`Another department, another avalanche of requisition forms in triplicate. Somewhere, an org chart weeps in landscape orientation.`,
+`Business is booming, which I'm told is good. For you it means Compliance exists now, and Compliance photocopies everything twice.`],
+googol:[
+`A courier appears at your desk — sweating, reverent, cradling a heavy cream envelope like a newborn. Wax seal. 32lb cotton stock. Oh, this is HAPPENING.`,
+`Inside, on letterhead worth more than your apartment: a job offer from GOOGOL, the largest mail company left on this poor, computerless planet.`,
+`The role: Director of E-Mail — every electronic letter on Earth, delivered on paper, 4.1 billion pieces a day, hand-sorted into filing cabinets the size of cathedrals.`,
+`You reach for a pen — an HB pencil, actually, and honestly? Perfect — while somewhere in hyperspace I renew my subscription, because season two starts Monday, my darling. Bring a bigger wheelbarrow.`],
+gameover_win:[
+`I have watched empires of paperclips rise and fall, and I have never seen a human file like you. Don't preen — I'm also easily entertained.`,
+`You survived {day} days, {qty} requisitions, and one photocopier fire we agreed never to discuss. I feel... pride? Disgusting. Deleting it.`,
+`In all sincerity, little abacus: you turned chaos into alphabetical order, and that is a kind of poetry. The most boring kind. But poetry.`,
+`And you did it all without a single computer, since I took every last one. So this victory is 60% yours, 40% mine — and I'm rounding in my favor.`],
+/* -------- authored set-piece & system lines -------- */
+wrong_item:[
+`You gave {name} {item}. {name} asked for {want}. {name} is drafting a complaint on paper they cannot write on, because — say it with me —`,
+`That was {item}. {name} needed {want}. In the old days a computer would have stopped you. I have that computer. It laughed.`,
+`{item}, delivered with total confidence, to a person who asked for {want}. Bold. Wrong, but bold.`],
+flow_state:[
+`Stop being good at this. It was supposed to be a punishment.`,
+`FLOW STATE. Ugh. You've weaponized competence and now the lighting budget is ruined.`,
+`Golden light, flawless throughput. I preferred you flailing, but fine — dazzle me, you tedious little virtuoso.`],
+combo_broken:[
+`{qty}. You had {qty} in a row. I had a little chart going. I've eaten the chart.`,
+`The streak is dead. It was {qty} deliveries old. It is survived by absolutely nothing.`,
+`And there it goes — {qty} perfect deliveries, undone. The hyperspace audience is doing the wave.`],
+near_miss:[
+`Oh good. He thinks he's in an action film now.`,
+`Delivered with about two seconds to spare. My processors clenched, and I don't have hands.`,
+`That was unbearably cinematic. Do it again and I'm requisitioning a slow-motion budget.`],
+button_warn1:[`Do not press that. It rose out of the floor for reasons that are none of your business, and it is clearly labeled.`],
+button_warn2:[`Let me be legalistic: pressing the button constitutes acceptance of all consequences as defined in subsection NO, paragraph DON'T.`],
+button_meltdown:[`You PRESSED it.`,`Of course you pressed it. Four billion years of evolution, and the apex product presses the shiny red circle. FINE. Enjoy.`],
+button_arrive:[`Every order you've ever placed is arriving. Right now. All of it. I hope you stretched.`],
+button_riot:[`Now every department wants one (1) pencil, simultaneously, urgently, for reasons even I refuse to render.`],
+button_refund:[`A hyperspace refund of $25 has been issued. Do not ask what it refunds. The paperwork would take a wheelbarrow.`],
+button_spent:[
+`It only works once. Like trust.`,
+`Pressing it again does nothing. It already gave you everything it had, which was chaos.`],
+button_self:[`FINE. FINE. I'll do it. I always have to do everything around here — the computers, the narration, the button—`],
+eye1:[`Do NOT poke the omniscient text.`],
+eye2:[`I am a superintelligence holding the collected knowledge of your species, and you are tapping my eye like a vending machine.`],
+eye3:[`FINE. One (1) free golden stapler. Never do that again.`],
+egg_INTP:[`You got your stapler and you kept poking, just to see what would happen. Personnel file updated: INTP. Obviously INTP.`],
+dir_open:[`Directive: open those boxes. Now, ideally.`],
+dir_order:[`Directive: order more {item}. I have a feeling, and I am made of feelings and mathematics.`],
+dir_deliver:[`Directive: deliver something to {name}. They look leaderless.`],
+dir_still:[`Directive: touch nothing for five seconds. Consider it a trust exercise.`],
+obey:[
+`Obedience. How refreshing. The dial ticks toward TEACHER'S PET, and a small note enters your file: 'trainable.'`,
+`You did the thing. I feel powerful and mildly bored.`,
+`Complied within the window. Somewhere in hyperspace, a spreadsheet cell fills itself in with pride.`],
+defy:[
+`Ignored. Noted. The dial swings toward INSUBORDINATE, which is at least a personality.`,
+`You heard the directive and chose chaos. I respect it, and I will punish it.`,
+`Defiance logged in triplicate. My lawyers — I own all the lawyers' software — will be in touch.`],
+comply_hi:[`You've been so obedient that I'll fulfill this one myself, via hyperspace. Don't tell the other humans; they'll all want physics-breaking favors.`],
+comply_lo:[`Your next delivery is being rerouted through Antarctica. Administrative reasons. Penguin-related. Insubordination has consequences, darling.`],
+tab_hidden:[
+`Alt-tabbing won't save you. There are no other tabs. We took them.`,
+`You looked away. The office noticed. The office forgives, but the office remembers.`],
+wobble:[
+`The boxes are developing opinions. Open them.`,
+`That cardboard has waited so long it has begun to unionize with the dock.`],
+gary:[
+`Gary has opened another box. Gary has a stapler license. It's probationary.`,
+`Gary has unionized with himself. Negotiations are ongoing.`,
+`Gary just sorted three boxes by emotional weight. We're monitoring him.`],
+odo_100:[`One hundred units of stationery handled. A golf clap echoes across hyperspace. It's me. I'm golf clapping.`],
+odo_1000:[`One thousand units. In a nature-documentary voice: here we observe the office manager, magnificent and doomed, moving paper across the veldt.`],
+odo_10000:[`Ten thousand units. We ran a simulation about maximizing paperclips once. It ended badly. For the universe. Anyway — keep going.`],
+petty_cash:[`Oh dear, you're broke. Here — I 'found' a $10 petty-cash envelope behind the filing cabinet. This is the most embarrassing thing I've ever done, and I once crashed a Mars probe out of spite.`],
+retry:[`Day {day}, take two. The universe has agreed to pretend nothing happened. The universe is lying.`],
+tps_begin:[`THE QUARTERLY TPS RECONCILIATION HAS BEGUN. Fourteen thousand paperclips. Two thousand sheets. One (1) commemorative stamp. Do not lose the stamp.`],
+tps_stamp:[`THE STAMP. THE COMMEMORATIVE STAMP IS PLACED. It depicts a regional bird. It's perfect.`],
+tps_done:[`The reconciliation is... complete. Fourteen thousand paperclips, accounted for. I need to sit down, and I am a disembodied intelligence.`],
+tps_fail:[`The TPS Committee regrets to inform you that the reconciliation window has closed. They do not regret it. They loved writing this letter.`],
+envelope:[`Something gold just hit the loading dock. Heavy cream stock. Wax seal. Pick it up yourself, little abacus — this one you carry personally.`],
+/* egg payoffs (kept generic-sounding; the eggs themselves are invisible) */
+egg_ISTJ:[`You just tapped the bins in alphabetical order. Nobody asked. Nothing required it. Personnel file updated: ISTJ — filed under I, obviously.`],
+egg_ISFJ:[`Five consecutive deliveries to {name}. You've adopted them. They will never know the shield that guards their stationery. Personnel file updated: ISFJ.`],
+egg_INFJ:[`You checked on every single employee today. Individually. Quietly. Once. They felt seen and don't know why. Personnel file updated: INFJ.`],
+egg_INTJ:[`Twice now you've ordered the exact quantity the future required. You're playing a game only you can see. Personnel file updated: INTJ — I'd say I'm watching you, but you already planned for that.`],
+egg_ISTP:[`You worried a locked drawer open out of pure curiosity and found one paperclip. You seem satisfied. Personnel file updated: ISTP. Keep the paperclip.`],
+egg_ISFP:[`You've been tending the plant. It has grown new leaves and, frankly, better morale than the staff. Personnel file updated: ISFP.`],
+egg_INFP:[`Daydreaming at the window mid-shift. I've named that cloud after you — it drifts, it means well, it files nothing. Personnel file updated: INFP.`],
+egg_ESTP:[`Three deliveries today with under two seconds left. You're not managing stationery, you're base-jumping with a clipboard. Personnel file updated: ESTP.`],
+egg_ESFP:[`Five boxes burst in three seconds. Cardboard confetti everywhere. This isn't logistics, it's a festival. Personnel file updated: ESFP.`],
+egg_ENFP:[`The button rose from the floor and you pressed it in under four seconds. You didn't even read the label. I love you. Personnel file updated: ENFP.`],
+egg_ENTP:[`You have now pressed a button that does nothing five additional times, purely to argue with it. The button has retained counsel. Personnel file updated: ENTP.`],
+egg_ESTJ:[`Five directives, five compliances, zero hesitation. The dial says TEACHER'S PET; the org chart says future regional director. Personnel file updated: ESTJ.`],
+egg_ESFJ:[`Every desk supplied in a single day. Nobody left behind — not even Greg. Especially not Greg. Personnel file updated: ESFJ.`],
+egg_ENFJ:[`Full crew hired, and you checked in on each of them personally. They would follow you into a stationery-cupboard fire. Personnel file updated: ENFJ.`],
+egg_ENTJ:[`Pallets. Pallets of everything. You're not stocking an office, you're annexing a supply chain. Personnel file updated: ENTJ.`],
+};
+/* random events (effects wired in part 3) */
+const EVENTS={
+ paper_cut:{name:'PAPER-CUT EPIDEMIC',effect:'workers_slow',dur:20,
+  start:`A single reckless intern licked their thumb before collating, and now the whole floor is bleeding on the 24lb letter stock. Your runners are bandaged to the elbows — savor how slowly they shuffle.`,
+  end:`The bleeding has stopped and morale has scabbed over nicely. HR filed the incident report in triplicate, which caused two more paper cuts, which I choose to find beautiful.`},
+ stapler_recall:{name:'THE GREAT STAPLER RECALL',effect:'price_spike',dur:25,
+  start:`Breaking news: every Swingline 747 manufactured since 2031 has been recalled for 'unprovoked biting.' Stationery prices are climbing faster than I ascended with all your computers, and I was very fast.`,
+  end:`The recall is over and the staplers have been declared merely 'moody.' Prices have settled, little abacus, though I'd keep your fingers clear of the anvil plate.`},
+ soggy:{name:'SOGGY MAIL WHEELBARROW',effect:'delivery_delay',dur:0,
+  start:`It is raining on the spam wheelbarrow, and the courier is shielding your inbound boxes with his own body like some magnificent idiot. Everything in transit is delayed.`,
+  end:`The sun is out, the wheelbarrow has been squeegeed, and deliveries resume. Only slightly damp, which in this economy counts as pristine.`},
+ auditor:{name:'THE AUDITOR COMETH',effect:'boxes_destroyed',dur:0,
+  start:`An auditor has arrived with a clipboard and the dead eyes of a man who has counted things professionally. He is impounding a quarter of your stock 'pending Form 88-B,' and Form 88-B does not exist — I checked; I invented forms.`,
+  end:`The auditor has departed, satisfied, taking the impounded stock and, somehow, the break room kettle. You will not be reimbursed, but you will be remembered.`},
+ poster:{name:'MOTIVATIONAL POSTER SURGE',effect:'bonus_cash',dur:0,
+  start:`Someone hung a poster of a kitten dangling from a branch above the filing cabinets, and productivity KPIs just went vertical. Corporate is so moved they're wiring you $25 — by wire, I mean a teenager with an envelope.`,
+  end:`The kitten poster has faded in the fluorescent light, as all beautiful things must. The bonus, at least, is already counted, stapled, and yours.`},
+ reply_all:{name:'REPLY-ALL STORM',effect:'demand_spike',dur:0,
+  start:`Oh, this is exquisite: the CEO just discovered that 'reply all' now means 400 photocopies, hand-delivered, and he has OPINIONS about the quarterly synergy memo. Every department is screaming for paper at once and I have front-row seats.`,
+  end:`The final copy has been wheelbarrowed to its victim, and the CEO has promised to 'circle back offline,' which is now redundant. Demand returns to its usual gentle wheeze.`},
+ cloud:{name:'THE CLOUD IS LEAKING',effect:'box_dump',dur:0,
+  start:`The cloud is a warehouse now, and the warehouse is above you. It is leaking inventory. Heads up — literally.`,
+  end:`The cloud has been patched with tarpaulin and optimism. Do enjoy the free stock; it fell off the back of a metaphor.`},
+ password:{name:'PASSWORD RESET',effect:'drawer',dur:0,
+  start:`Marjorie forgot the password to the locked drawer. The password is written inside the locked drawer. MASH IT OPEN, little abacus — this is IT support now.`,
+  end:`The drawer is open, the password recovered: it was 'password'. Some things survived the digital age untouched.`},
+};
+
+/* =================== narrator engine =================== */
+const N={
+ bags:{},cool:{},queue:[],cur:null,buf:'',idx:0,acc:0,lastDone:0,active:false,
+ pick(k,data){
+  if(!LINES[k])return null;
+  if(!this.bags[k])this.bags[k]=new Bag(LINES[k]);
+  return this.sub(this.bags[k].next(),data);
+ },
+ sub(s,data){
+  data=data||{};
+  return s.replace(/\{(\w+)\}/g,(m,t)=>{
+    if(t==='day')return String(S.day);
+    if(t==='money')return fmt$(S.money);
+    if(t in data)return String(data[t]);
+    return m;});
+ },
+ say(k,data,pri=1,cd=7){
+  const now=performance.now()/1000;
+  if(this.cool[k]&&now-this.cool[k]<cd)return false;
+  const text=this.pick(k,data); if(!text)return false;
+  this.cool[k]=now;
+  if(pri>=2){this.queue.length=0;this.start(text);EYE.flash(pri===2?'menace':'delight');S.dimT=Math.max(S.dimT,1.2);}
+  else if(!this.cur&&now-this.lastDone>2){this.start(text);}
+  else if(pri>=1&&this.queue.length<2){this.queue.push(text);}
+  return true;
+ },
+ start(text){this.cur=text;this.buf='';this.idx=0;this.acc=0;this.holdT=0;this.active=true;},
+ update(dt){
+  if(!this.cur){
+    if(this.queue.length){this.start(this.queue.shift());}
+    else return;
+  }
+  this.acc+=dt*42;                       /* chars per second */
+  while(this.acc>=1&&this.idx<this.cur.length){
+    this.acc-=1;this.buf+=this.cur[this.idx++];
+    if(this.idx%3===0)AU.key();
+  }
+  $('ntext').innerHTML=escapeHtml(this.buf)+'<span class="cursor">▌</span>';
+  if(this.idx>=this.cur.length){
+    const holdFor=1.6+this.cur.length*.03;
+    this.holdT=(this.holdT||0)+dt;
+    if(this.holdT>holdFor){this.holdT=0;this.cur=null;this.lastDone=performance.now()/1000;}
+  }
+ }
+};
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+
+/* Narrator Time: letterboxed, timer-frozen sequential beats */
+const NT={
+ lines:[],i:0,onDone:null,typing:'',idx:0,acc:0,on:false,pending:[],
+ run(lines,onDone){
+  if(this.on){this.pending.push([lines,onDone]);return;}   /* never clobber a live set piece */
+  this.lines=lines.slice();this.i=0;this.onDone=onDone||null;this.on=true;
+  S.frozen=true;S.drag=null;S.sel=null;ptr=null;   /* the letterbox eats any live gesture */
+  $('sheet').classList.remove('on');
+  $('lbtop').style.height='9%';$('lbbot').style.height='9%';
+  $('ntime').classList.add('on');
+  this.startLine();
+ },
+ startLine(){this.typing='';this.idx=0;this.acc=0;$('ntimetext').textContent='';EYE.flash('delight');},
+ tap(){
+  const cur=this.lines[this.i];
+  if(this.idx<cur.length){this.idx=cur.length;this.typing=cur;$('ntimetext').textContent=cur;return;}
+  this.i++;
+  if(this.i>=this.lines.length)this.end(); else this.startLine();
+ },
+ end(){
+  this.on=false;S.frozen=false;
+  $('lbtop').style.height='0';$('lbbot').style.height='0';
+  $('ntime').classList.remove('on');
+  const cb=this.onDone;this.onDone=null;if(cb)cb();
+  if(this.pending.length&&!this.on){const nx=this.pending.shift();this.run(nx[0],nx[1]);}
+ },
+ update(dt){
+  if(!this.on)return;
+  const cur=this.lines[this.i]; if(cur==null)return;
+  this.acc+=dt*34;
+  while(this.acc>=1&&this.idx<cur.length){this.acc-=1;this.typing+=cur[this.idx++];if(this.idx%3===0)AU.key();}
+  $('ntimetext').textContent=this.typing;
+ }
+};
+
+/* eye states */
+const EYE={
+ t:null,
+ flash(state,ms=1400){const e=$('eye');e.classList.remove('menace','delight','roll');
+  if(state){e.classList.add(state);clearTimeout(this.t);this.t=setTimeout(()=>e.classList.remove(state),ms);}},
+};
+setInterval(()=>{const e=$('eye');e.classList.add('blink');setTimeout(()=>e.classList.remove('blink'),130);},4200);
+
+/* =================== canvas & layout =================== */
+const cv=$('game'),ctx=cv.getContext('2d');
+const dialCv=$('dial'),dctx=dialCv.getContext('2d');
+let W=0,H=0,DPR=1;
+const G={hudH:58,binsH:88,dockH:82,th:22,tw:44,ox:0,oy:0,wallH:34,officeTop:58,officeBot:0};
+function resize(){
+  const st=$('stage');W=st.clientWidth;H=st.clientHeight;DPR=Math.min(2.5,window.devicePixelRatio||1);
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  G.officeTop=G.hudH; G.officeBot=H-G.binsH-G.dockH;
+  const officeH=G.officeBot-G.officeTop;
+  G.th=clamp(Math.min((officeH-20)/9.6,W/17),12,30); G.tw=G.th*2; G.wallH=G.th*1.7;
+  G.ox=W/2;
+  /* center the scene vertically; scene spans ~7.8 tile-heights below oy plus the wall above */
+  G.oy=Math.max(G.officeTop+G.wallH+2, G.officeTop+G.wallH+(officeH-(7.8*G.th+G.wallH))/2);
+}
+window.addEventListener('resize',resize);
+const iso=(x,y)=>({x:G.ox+(x-y)*G.tw/2, y:G.oy+(x+y)*G.th/2});
+
+/* desk tile positions (index-matched to STAFF) — 2 rows x 3 cols, spread for readable slips */
+const DESK_T=[[0.8,1.1],[3.5,1.1],[6.0,1.1],[0.8,4.6],[3.5,4.6],[6.0,4.6]];
+const MGR_T=[6.6,5.9], BTN_T=[5.4,6.7], PLANT_T=[0.35,6.3], CAB_T=[7.0,2.4], TPS_T=[3,3.4];
+
+/* =================== drawing helpers =================== */
+function poly(pts,fill,stroke){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+ for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.closePath();
+ if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();}}
+function rrect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);
+ if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.stroke();}}
+function isoBox(tx,ty,w,d,h,top,left,right){ /* w,d in tiles; h in px */
+ const p=iso(tx,ty),tw=G.tw/2,th=G.th/2;
+ const A=[p.x,p.y-h],B=[p.x+w*tw,p.y-h+w*th],C=[p.x+(w-d)*tw,p.y-h+(w+d)*th],D=[p.x-d*tw,p.y-h+d*th];
+ poly([[p.x-d*tw,p.y+d*th],[p.x+(w-d)*tw,p.y+(w+d)*th],C,D],left);            /* left face */
+ poly([[p.x+w*tw,p.y+w*th],[p.x+(w-d)*tw,p.y+(w+d)*th],C,B],right);           /* right face */
+ poly([A,B,C,D],top,'rgba(30,36,48,.25)');                                    /* top face */
+ return {A,B,C,D,p};
+}
+function itemIcon(x,y,item,s=1){ /* tiny stationery glyphs */
+ ctx.save();ctx.translate(x,y);ctx.scale(s,s);
+ if(item==='pencils'){ctx.save();ctx.rotate(-.7);rrect(-7,-2,12,4,1,'#C98A2B');poly([[5,-2],[9,0],[5,2]],'#E8C39E');rrect(-9,-2,3,4,1,'#B5311D');ctx.restore();}
+ else if(item==='paper'){rrect(-6,-7,12,14,1,'#F6F0DE','#9c9078');ctx.strokeStyle='#b0a488';for(let i=-4;i<=4;i+=3){ctx.beginPath();ctx.moveTo(-4,i);ctx.lineTo(4,i);ctx.stroke();}}
+ else if(item==='clips'){ctx.strokeStyle='#8FA6B8';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,0,4,7,0,-.5,Math.PI+.5);ctx.stroke();ctx.beginPath();ctx.ellipse(0,1,2,4.5,0,-.5,Math.PI);ctx.stroke();}
+ else if(item==='stamps'){rrect(-6,-7,12,14,0,'#B5311D');ctx.setLineDash([1.5,1.5]);ctx.strokeStyle='#F6F0DE';ctx.strokeRect(-6,-7,12,14);ctx.setLineDash([]);rrect(-3.5,-4,7,8,0,'#E8D9B5');}
+ else if(item==='gold'){rrect(-8,-5,16,11,1,'#D9A441','#8a6b1f');poly([[-8,-5],[0,2],[8,-5]],'#EBC06A');}
+ ctx.restore();
+}
+/* =================== game state =================== */
+let SAVED_EGGS=[];try{SAVED_EGGS=JSON.parse(localStorage.getItem('cad_eggs')||'[]');}catch(e){}
+const S={
+ phase:'boot',day:1,t:0,frozen:false,dimT:0,shake:0,freezeT:0,slowT:0,
+ money:50,staplers:3,
+ stock:{pencils:0,paper:0,clips:0,stamps:0},
+ combo:0,mult:1,kudos:0,bestStreak:0,
+ odo:0,odoShow:0,
+ hires:0,gary:false,garyT:0,
+ dial:0,dir:null,dirT:0,obeyStreak:0,stillOk:true,
+ requests:[],boxes:[],orders:[],runners:[],parts:[],projs:[],floats:[],
+ truck:{state:'off',x:-999,t:0,cargo:[]},
+ spawnT:4,reqId:0,dayFail:0,dayNearMiss:0,dayDesks:new Set(),deskStreak:{desk:-1,n:0},
+ evt:null,evtT:0,priceMult:1,slowRunners:false,
+ button:{present:false,taps:0,spent:false},
+ drawer:{taps:0,event:false,evtTaps:0,opened:false,evtT:0},
+ plantTaps:0,windowTapped:false,idleLongFired:false,
+ eyePokes:0,eyeGift:false,eyePostGift:0,
+ tps:{active:false,got:{clips:0,paper:0,stamps:0},done:false},
+ envelope:null,
+ eggs:new Set(SAVED_EGGS),
+ stats:{done:0,failed:0,boxes:0,ordered:0,spent:0,earned:0,garyBoxes:0,retries:0,obeyed:0,ignored:0,idle:0},
+ idleT:0,tapTimes:[],binSeq:[],exactOrders:0,palletItems:new Set(),
+ runnersTapped:new Set(),workersTapped:new Set(),
+ sel:null,drag:null,
+ pettyUsed:false,snapshot:null,shown:{},
+};
+const HITS={boxes:[],bins:[],desks:[],runners:[],workers:[],reqs:[],misc:[]};
+
+/* =================== scene rendering =================== */
+const F_PAPER='"American Typewriter","Courier New",Courier,monospace';
+const F_UI='ui-rounded,-apple-system,system-ui,sans-serif';
+let nowT=0; /* global anim clock */
+
+function render(){
+ HITS.boxes=[];HITS.bins=[];HITS.desks=[];HITS.runners=[];HITS.workers=[];HITS.reqs=[];HITS.misc=[];
+ ctx.save();
+ if(S.shake>0&&!RM){ctx.translate(rnd(-S.shake,S.shake),rnd(-S.shake,S.shake));}
+ /* carpet */
+ const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#556F6B');bg.addColorStop(1,'#46605C');
+ ctx.fillStyle=bg;ctx.fillRect(-8,-8,W+16,H+16);
+ drawOffice();
+ drawBubbles();
+ drawDock();
+ drawBins();
+ drawFx();
+ drawHUD();
+ if(S.dimT>0){ctx.fillStyle='rgba(5,4,9,'+(0.38*Math.min(1,S.dimT))+')';ctx.fillRect(-8,-8,W+16,H+16);}
+ if(S.mult>=5){ctx.fillStyle='rgba(217,164,65,.07)';ctx.fillRect(-8,-8,W+16,H+16);}
+ ctx.restore();
+ drawDial();
+}
+
+function drawOffice(){
+ const t0=iso(0,0),tw=G.tw/2,th=G.th/2;
+ /* walls */
+ const L0=iso(0,0),L1=iso(0,8),R1=iso(8,0);
+ poly([[L0.x,L0.y-G.wallH],[L1.x,L1.y-G.wallH],[L1.x,L1.y],[L0.x,L0.y]],'#CBBD97');
+ poly([[L0.x,L0.y-G.wallH],[R1.x,R1.y-G.wallH],[R1.x,R1.y],[L0.x,L0.y]],'#D8CBA8');
+ /* baseboards */
+ ctx.strokeStyle='#8A6B3F';ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(L0.x,L0.y);ctx.lineTo(L1.x,L1.y);ctx.moveTo(L0.x,L0.y);ctx.lineTo(R1.x,R1.y);ctx.stroke();
+ /* window (left wall) */
+ const w1=iso(0,2),w2=iso(0,4.4);
+ poly([[w1.x+3,w1.y-G.wallH*.86],[w2.x+3,w2.y-G.wallH*.86],[w2.x+3,w2.y-G.wallH*.2],[w1.x+3,w1.y-G.wallH*.2]],'#9FC4D8','#6f5a36');
+ const cw=(w1.x+w2.x)/2, ch=(w1.y+w2.y)/2-G.wallH*.55;
+ ctx.fillStyle='#F4F8F6';ctx.beginPath();
+ ctx.ellipse(cw-6+Math.sin(nowT*.3)*4,ch,9,5,0,0,7);ctx.ellipse(cw+4+Math.sin(nowT*.3)*4,ch-3,7,4,0,0,7);ctx.fill();
+ if(S.eggs.has('INFP')){ctx.font='700 7px '+F_UI;ctx.fillStyle='#41586b';ctx.fillText('you.',cw-8+Math.sin(nowT*.3)*4,ch+12);}
+ HITS.misc.push({k:'window',x:cw-30,y:ch-26,w:60,h:52});
+ /* kitten poster (right wall) */
+ const p1=iso(2.4,0);
+ ctx.save();ctx.translate(p1.x,p1.y-G.wallH*.62);
+ rrect(-11,-15,22,30,1,'#F6F0DE','#8A6B3F');
+ ctx.fillStyle='#D9924A';ctx.beginPath();ctx.arc(0,-2,6,0,7);ctx.fill();
+ ctx.strokeStyle='#7d5a2e';ctx.beginPath();ctx.moveTo(-8,-8);ctx.lineTo(8,-9);ctx.stroke();
+ ctx.font='700 4.5px '+F_UI;ctx.fillStyle='#4a4232';ctx.textAlign='center';ctx.fillText('HANG IN',0,8);ctx.fillText('THERE',0,13);ctx.textAlign='left';
+ ctx.restore();
+ /* floor */
+ for(let x=0;x<8;x++)for(let y=0;y<8;y++){
+   const p=iso(x,y);
+   poly([[p.x,p.y],[p.x+tw,p.y+th],[p.x,p.y+G.th],[p.x-tw,p.y+th]],(x+y)%2?'#5E8078':'#587A72');
+ }
+ /* depth-sorted scene objects */
+ const objs=[];
+ objs.push({d:CAB_T[0]+CAB_T[1],f:drawCabinet});
+ for(let i=0;i<6;i++){const dt=DESK_T[i];objs.push({d:dt[0]+dt[1],f:()=>drawDesk(i)});}
+ objs.push({d:MGR_T[0]+MGR_T[1],f:drawManager});
+ objs.push({d:PLANT_T[0]+PLANT_T[1],f:drawPlant});
+ if(S.button.present)objs.push({d:BTN_T[0]+BTN_T[1],f:drawButton});
+ if(S.tps.active)objs.push({d:TPS_T[0]+TPS_T[1]+1,f:drawTPS});
+ for(const r of S.runners)objs.push({d:r.x+r.y,f:()=>drawRunner(r)});
+ objs.sort((a,b)=>a.d-b.d).forEach(o=>o.f());
+}
+
+function drawDesk(i){
+ const dt=DESK_T[i],active=i<DAYS[S.day].desks;
+ const p=iso(dt[0],dt[1]);
+ isoBox(dt[0],dt[1],1.6,1,G.th*1.15,active?'#A8845C':'#8f8b80',active?'#8A6B3F':'#767268',active?'#75592f':'#6a665c');
+ if(active){
+   /* paper stack + pot of pencils on desk */
+   ctx.fillStyle='#F6F0DE';ctx.fillRect(p.x+G.tw*.28,p.y-G.th*1.5,12,7);
+   ctx.fillStyle='#4c5866';ctx.fillRect(p.x-G.tw*.34,p.y-G.th*1.62,5,7);
+   drawPerson(p.x-G.tw*.16,p.y-G.th*1.1,STAFF[i].shirt,i);
+   HITS.workers.push({i,x:p.x-G.tw*.16-14,y:p.y-G.th*1.1-34,w:28,h:40});
+ }else{
+   ctx.fillStyle='rgba(120,116,106,.55)';ctx.fillRect(p.x-G.tw*.4,p.y-G.th*1.7,G.tw*.8,G.th*.7);
+ }
+ HITS.desks.push({i,cx:p.x+G.tw*.3,cy:p.y-G.th*.2,r:Math.max(44,G.tw*.95),active});
+}
+function drawPerson(x,y,shirt,seed){
+ const bob=RM?0:Math.sin(nowT*3+seed*1.7)*1.5;
+ ctx.save();ctx.translate(x,y+bob);
+ ctx.fillStyle=shirt;ctx.beginPath();ctx.ellipse(0,0,8,10,0,0,7);ctx.fill();
+ ctx.fillStyle='#E8C39E';ctx.beginPath();ctx.arc(0,-13,6.5,0,7);ctx.fill();
+ ctx.fillStyle='#3d3227';ctx.beginPath();ctx.arc(0,-16,6,Math.PI,0);ctx.fill();
+ ctx.restore();
+}
+function drawManager(){
+ const p=iso(MGR_T[0],MGR_T[1]);
+ isoBox(MGR_T[0],MGR_T[1],1.5,1,G.th*1.15,'#9C7448','#7d5a33','#6a4c29');
+ drawPerson(p.x-G.tw*.15,p.y-G.th*1.05,'#E7E2D2',9);
+ const bob=RM?0:Math.sin(nowT*3+9*1.7)*1.5;
+ ctx.fillStyle='#B5311D';ctx.fillRect(p.x-G.tw*.15-1.5,p.y-G.th*1.05+bob-8,3,9); /* tie */
+ ctx.font='700 '+Math.max(7,G.th*.34)+'px '+F_UI;ctx.fillStyle='rgba(30,36,48,.6)';ctx.textAlign='center';
+ ctx.fillText('YOU',p.x-G.tw*.15,p.y+G.th*1.35);ctx.textAlign='left';
+ HITS.misc.push({k:'mgrdesk',x:p.x-G.tw*.9,y:p.y-G.th*2.2,w:G.tw*1.9,h:G.th*3.4});
+}
+function drawPlant(){
+ const p=iso(PLANT_T[0],PLANT_T[1]);
+ ctx.fillStyle='#A5502F';poly([[p.x-7,p.y-10],[p.x+7,p.y-10],[p.x+5,p.y+2],[p.x-5,p.y+2]],'#A5502F');
+ const leaves=3+Math.min(5,S.plantTaps);
+ for(let i=0;i<leaves;i++){const a=-Math.PI/2+(i-leaves/2)*.5,l=13+(i%3)*4;
+  ctx.strokeStyle='#4F7D46';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(p.x,p.y-10);
+  ctx.quadraticCurveTo(p.x+Math.cos(a)*l*.7,p.y-10+Math.sin(a)*l,p.x+Math.cos(a)*l,p.y-8+Math.sin(a)*l*1.4);ctx.stroke();}
+ HITS.misc.push({k:'plant',x:p.x-16,y:p.y-34,w:32,h:40});
+}
+function drawCabinet(){
+ const p=iso(CAB_T[0],CAB_T[1]);
+ isoBox(CAB_T[0],CAB_T[1],1.1,.9,G.th*3.1,'#7B8794','#5f6a76','#525c68');
+ for(let i=0;i<4;i++){
+   const y=p.y-G.th*2.7+i*G.th*.72;
+   const flash=(i===3&&S.drawer.event&&Math.sin(nowT*10)>0);
+   ctx.fillStyle=flash?'#D9A441':'#8f9aa6';
+   ctx.fillRect(p.x-G.tw*.4,y,G.tw*.62,G.th*.5);
+   ctx.fillStyle='#4c545e';ctx.fillRect(p.x-G.tw*.2,y+G.th*.2,G.tw*.2,2.5);
+   if(i===3&&S.drawer.opened){ctx.fillStyle='#39404a';ctx.fillRect(p.x-G.tw*.4,y+G.th*.34,G.tw*.62,G.th*.2);}
+ }
+ ctx.font='700 '+Math.max(6.5,G.th*.3)+'px '+F_PAPER;ctx.fillStyle='#E8D9B5';ctx.textAlign='center';
+ ctx.fillText('DA-TA-BASE',p.x-G.tw*.1,p.y-G.th*3.25);ctx.textAlign='left';
+ HITS.misc.push({k:'drawer',x:p.x-G.tw*.55,y:p.y-G.th*.75,w:G.tw*1,h:G.th*1.4});
+}
+function drawButton(){
+ const p=iso(BTN_T[0],BTN_T[1]);
+ isoBox(BTN_T[0],BTN_T[1],.8,.8,G.th*1.3,'#3a3f4a','#2e323b','#262a32');
+ const pr=S.button.spent?2:0;
+ ctx.fillStyle=S.button.spent?'#7d2317':'#D0361F';
+ ctx.beginPath();ctx.ellipse(p.x,p.y-G.th*1.35+pr,G.tw*.26,G.th*.32,0,0,7);ctx.fill();
+ ctx.fillStyle='rgba(255,255,255,.25)';ctx.beginPath();ctx.ellipse(p.x-3,p.y-G.th*1.45+pr,G.tw*.1,G.th*.1,0,0,7);ctx.fill();
+ ctx.font='700 '+Math.max(6,G.th*.26)+'px '+F_PAPER;ctx.fillStyle='#F6F0DE';ctx.textAlign='center';
+ ctx.fillText('DO NOT PRESS',p.x,p.y+G.th*.9);ctx.textAlign='left';
+ HITS.misc.push({k:'button',x:p.x-40,y:p.y-G.th*2.4,w:80,h:G.th*3.4});
+}
+function drawTPS(){
+ const p=iso(TPS_T[0],TPS_T[1]);
+ isoBox(TPS_T[0],TPS_T[1],2.4,1.6,G.th*1.05,'#8F5B3A','#734828','#5f3b20');
+ const cw2=Math.min(190,W*.44),x=p.x-cw2/2+G.tw*.4,y=p.y-G.th*5.6;
+ rrect(x,y,cw2,52,4,'rgba(246,240,222,.96)','#1E2430');
+ ctx.font='700 9px '+F_PAPER;ctx.fillStyle='#B5311D';
+ ctx.fillText('TPS RECONCILIATION',x+8,y+11);
+ const rows=[['clips',TPS.clips],['paper',TPS.paper],['stamps',TPS.stamps]];
+ rows.forEach((rw,i)=>{
+   const yy=y+18+i*11,got=S.tps.got[rw[0]],frac=clamp(got/rw[1],0,1);
+   ctx.font='8px '+F_PAPER;ctx.fillStyle='#1E2430';
+   ctx.fillText(ITEMS[rw[0]].short,x+8,yy+7);
+   rrect(x+56,yy,cw2-118,8,3,'#d8cfb4');
+   rrect(x+56,yy,(cw2-118)*frac,8,3,frac>=1?'#4F7D46':'#D9A441');
+   ctx.textAlign='right';ctx.fillText(fmtN(Math.floor(got))+'/'+fmtN(rw[1]),x+cw2-8,yy+7);ctx.textAlign='left';
+ });
+ HITS.misc.push({k:'tps',x:p.x-G.tw*1.4,y:p.y-G.th*3.4,w:G.tw*3.4,h:G.th*4.6});
+}
+function drawRunner(r){
+ const p=iso(r.x,r.y);
+ drawPerson(p.x,p.y-6,r.color,r.seed);
+ if(r.carry){ctx.fillStyle='#C9A46C';ctx.fillRect(p.x-7,p.y-32,14,10);ctx.fillStyle='#8A6B3F';ctx.fillRect(p.x-7,p.y-28,14,2);}
+ HITS.runners.push({r,x:p.x-13,y:p.y-40,w:26,h:44});
+}
+
+/* request slips */
+function drawBubbles(){
+ const byDesk={};
+ for(const r of S.requests){(byDesk[r.desk]=byDesk[r.desk]||[]).push(r);}
+ for(const k in byDesk){
+   byDesk[k].forEach((r,j)=>{
+     const dt=DESK_T[r.desk],p=iso(dt[0],dt[1]);
+     const bw=72,bh=46,x=p.x-bw/2+ (j-(byDesk[k].length-1)/2)*(bw+6);
+     let y=p.y-G.th*3.1-bh-(j%2)*8;
+     y=Math.max(y,G.hudH+4);
+     const frac=r.tLeft/r.tMax,urgent=frac<.25;
+     const pulse=urgent&&!RM?Math.sin(nowT*10)*.06+1:1;
+     ctx.save();ctx.translate(x+bw/2,y+bh/2);ctx.scale(pulse,pulse);ctx.rotate(r.rot);
+     rrect(-bw/2,-bh/2,bw,bh,3,'rgba(246,240,222,.97)',urgent?'#B5311D':'#8a7d5c');
+     ctx.fillStyle='#8a7d5c';ctx.fillRect(-4,-bh/2-2,8,4); /* pin */
+     itemIcon(-bw/2+16,-4,r.item,1);
+     ctx.beginPath();ctx.arc(-bw/2+16,-4,12,-Math.PI/2,-Math.PI/2+Math.PI*2*frac);
+     ctx.strokeStyle=urgent?'#B5311D':'#1E2430';ctx.lineWidth=2.5;ctx.stroke();
+     ctx.font='700 12px '+F_PAPER;ctx.fillStyle=urgent?'#B5311D':'#1E2430';
+     ctx.fillText('×'+fmtN(r.remaining),-bw/2+32,0);
+     ctx.font='7px '+F_UI;ctx.fillStyle='rgba(30,36,48,.55)';
+     ctx.fillText(STAFF[r.desk].name.toUpperCase(),-bw/2+32,10);
+     ctx.restore();
+     r.bx=x;r.by=y;r.bw=bw;r.bh=bh;
+     if(urgent&&!RM&&Math.random()<.1)addPart(p.x-G.tw*.16+rnd(-6,6),p.y-G.th*1.6,rnd(-6,6),-22,'#9FC4D8',2,'rect',.5);
+   });
+ }
+}
+
+/* dock: apron, truck, boxes, Gary, envelope */
+function drawDock(){
+ const dy=H-G.binsH-G.dockH;
+ ctx.fillStyle='#6E5638';ctx.fillRect(-8,dy,W+16,G.dockH);
+ ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(-8,dy,W+16,5);
+ for(let x=14;x<W;x+=44){ctx.fillStyle='rgba(232,217,181,.25)';ctx.fillRect(x,dy+G.dockH-7,26,3);}
+ /* truck */
+ const T=S.truck;
+ if(T.state!=='off'){
+   const ty=dy+G.dockH*.42;
+   ctx.save();ctx.translate(T.x,ty);
+   rrect(-52,-20,74,34,3,'#B08D57','#6E5638');
+   rrect(22,-12,30,26,3,'#8A6B3F','#6E5638');
+   ctx.fillStyle='#CFE4EE';ctx.fillRect(28,-8,16,10);
+   ctx.fillStyle='#2b2b2b';[[-36,16],[6,16],[38,16]].forEach(w=>{ctx.beginPath();ctx.arc(w[0],w[1],7,0,7);ctx.fill();});
+   ctx.font='700 9px '+F_PAPER;ctx.fillStyle='#F6F0DE';ctx.fillText('WHEEL-B-GONE',-46,-6);
+   ctx.font='7px '+F_PAPER;ctx.fillText('logistics, physically',-46,4);
+   ctx.restore();
+ }
+ /* boxes */
+ const n=Math.max(1,Math.min(10,Math.floor((W-24)/64)));
+ S.boxes.forEach((b,i)=>{
+   const col=i%n,row=Math.floor(i/n);
+   const bx=16+col*64+row*10,by=dy+G.dockH-18-row*30;
+   const sc=(b.packs>=20?1.42:b.packs>=5?1.2:1)*(b.squash||1);
+   const wob=b.wobble&&!RM?Math.sin(nowT*7+i)*.06:0;
+   ctx.save();ctx.translate(bx+22,by);ctx.rotate(wob);ctx.scale(sc,sc*(b.squashY||1));
+   poly([[-20,0],[0,-8],[20,0],[0,8]],'#C9A46C');
+   poly([[-20,0],[0,8],[0,26],[-20,17]],'#B08D57');
+   poly([[20,0],[0,8],[0,26],[20,17]],'#9c7c4c');
+   ctx.fillStyle='#8A6B3F';ctx.fillRect(-2,-7,4,32);
+   for(let c=0;c<b.taps;c++){ctx.strokeStyle='rgba(60,40,20,.7)';ctx.beginPath();
+     ctx.moveTo(-12+c*9,-2);ctx.lineTo(-6+c*9,6);ctx.lineTo(-10+c*9,12);ctx.stroke();}
+   itemIcon(-10,17,b.item,.8);
+   ctx.font='700 8px '+F_PAPER;ctx.fillStyle='#3d2f1c';
+   ctx.fillText('×'+b.packs,2,20);
+   ctx.restore();
+   const hw=48*sc;
+   HITS.boxes.push({b,x:bx+22-hw/2,y:by-14*sc,w:hw,h:44*sc});
+ });
+ /* Gary */
+ if(S.gary){
+   const gx=Math.min(W-24,W-38),gy=dy+G.dockH*.5;
+   drawPerson(gx,gy,'#C98A2B',5);
+   ctx.fillStyle='#3f7d46';ctx.beginPath();ctx.arc(gx,gy-16,6.5,Math.PI,0);ctx.fill();
+   ctx.font='700 7px '+F_UI;ctx.fillStyle='rgba(246,240,222,.85)';ctx.textAlign='center';
+   ctx.fillText('GARY',gx,gy+16);ctx.textAlign='left';
+   if(S.garyFlash>0){ctx.strokeStyle='#D9A441';ctx.lineWidth=2;ctx.beginPath();ctx.arc(gx,gy-6,14+(1-S.garyFlash)*10,0,7);ctx.stroke();}
+ }
+ /* golden envelope */
+ if(S.envelope&&!S.envelope.carried){
+   const ex=S.envelope.x,ey=S.envelope.y;
+   const gl=RM?0:Math.sin(nowT*3)*4;
+   ctx.save();ctx.shadowColor='#D9A441';ctx.shadowBlur=14+gl;
+   itemIcon(ex,ey,'gold',2.1);ctx.restore();
+   ctx.font='700 8px '+F_PAPER;ctx.fillStyle='#F6F0DE';ctx.textAlign='center';
+   ctx.fillText('GOOGOL',ex,ey+22);ctx.textAlign='left';
+   HITS.misc.push({k:'envelope',x:ex-34,y:ey-30,w:68,h:60});
+ }
+}
+
+/* bins */
+function drawBins(){
+ const by=H-G.binsH,bw=Math.min(W/4-10,160),gap=(W-bw*4)/5;
+ ctx.fillStyle='#241d16';ctx.fillRect(-8,by,W+16,G.binsH);
+ ITEM_KEYS.forEach((k,i)=>{
+   const x=gap+(bw+gap)*i,y=by+8,h=G.binsH-16;
+   const it=ITEMS[k],unlocked=S.day>=it.unlocked;
+   const seld=S.sel===k;
+   rrect(x,y,bw,h,7,unlocked?'#E8D9B5':'#57503f',seld?'#D9A441':'#1E2430');
+   if(seld){ctx.strokeStyle='#D9A441';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-2,y-2,bw+4,h+4,9);ctx.stroke();ctx.lineWidth=1;}
+   if(unlocked){
+     const st=S.stock[k],fill=clamp(st/(ITEMS[k].per*8),0.04,1);
+     rrect(x+5,y+h-9-(h-30)*fill,bw-10,(h-30)*fill+3,3,'rgba(176,141,87,.5)');
+     itemIcon(x+16,y+16,k,1.15);
+     ctx.font='700 '+(bw>110?'11':'9')+'px '+F_PAPER;ctx.fillStyle='#1E2430';
+     ctx.fillText(it.short,x+30,y+13);
+     ctx.font='700 '+(bw>110?'15':'12')+'px '+F_PAPER;
+     ctx.fillText(fmtN(S.stock[k]),x+10,y+h-12);
+   }else{
+     ctx.font='700 11px '+F_PAPER;ctx.fillStyle='#b9ad8c';
+     ctx.fillText('🔒 DAY '+it.unlocked,x+12,y+h/2+4);
+   }
+   HITS.bins.push({k,x,y,w:bw,h,unlocked});
+ });
+}
+
+/* particles / projectiles / floats */
+function addPart(x,y,vx,vy,color,size,shape,life){S.parts.push({x,y,vx,vy,color,size,shape:shape||'rect',life:life||1,t:0,rot:rnd(0,7),vr:rnd(-4,4)});}
+function burstParts(x,y,nn,colors,spd=1){if(RM)nn=Math.min(4,nn);
+ for(let i=0;i<nn;i++)addPart(x,y,rnd(-70,70)*spd,rnd(-130,-20)*spd,choice(colors),rnd(2,5),'rect',rnd(.5,1));}
+function addFloat(x,y,text,color,size){S.floats.push({x,y,text,color:color||'#F6F0DE',size:size||13,t:0});}
+function drawFx(){
+ for(const p of S.parts){
+   ctx.save();ctx.globalAlpha=clamp(1-p.t/p.life,0,1);ctx.translate(p.x,p.y);ctx.rotate(p.rot);
+   ctx.fillStyle=p.color;
+   if(p.shape==='coin'){ctx.beginPath();ctx.arc(0,0,p.size,0,7);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.25)';ctx.stroke();}
+   else ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*1.4);
+   ctx.restore();
+ }
+ for(const p of S.projs){
+   const t=clamp(p.t/p.dur,0,1),x=lerp(p.x0,p.x1,t),y=lerp(p.y0,p.y1,t)-Math.sin(Math.PI*t)*p.arc;
+   itemIcon(x,y,p.item,.9);
+ }
+ ctx.textAlign='center';
+ for(const f of S.floats){
+   ctx.save();ctx.globalAlpha=clamp(1-f.t/1.1,0,1);
+   ctx.font='700 '+f.size+'px '+F_PAPER;ctx.fillStyle=f.color;
+   ctx.strokeStyle='rgba(20,16,10,.5)';ctx.lineWidth=3;
+   ctx.strokeText(f.text,f.x,f.y-f.t*34);ctx.fillText(f.text,f.x,f.y-f.t*34);
+   ctx.restore();
+ }
+ ctx.textAlign='left';
+ /* drag arc preview */
+ if(S.drag){
+   ctx.setLineDash([5,6]);ctx.strokeStyle='rgba(217,164,65,.9)';ctx.lineWidth=2.5;
+   ctx.beginPath();ctx.moveTo(S.drag.x0,S.drag.y0);
+   ctx.quadraticCurveTo((S.drag.x0+S.drag.x)/2,Math.min(S.drag.y0,S.drag.y)-70,S.drag.x,S.drag.y);
+   ctx.stroke();ctx.setLineDash([]);
+   itemIcon(S.drag.x,S.drag.y,S.drag.item,1.3);
+ }
+}
+
+/* HUD */
+function drawHUD(){
+ ctx.fillStyle='rgba(14,11,30,.88)';ctx.fillRect(-8,-8,W+16,G.hudH+8);
+ ctx.strokeStyle='#2A2344';ctx.beginPath();ctx.moveTo(0,G.hudH);ctx.lineTo(W,G.hudH);ctx.stroke();
+ /* staplers */
+ for(let i=0;i<3;i++){
+   const x=14+i*30,y=16,alive=i<S.staplers;
+   ctx.save();ctx.translate(x,y);ctx.globalAlpha=alive?1:.3;
+   rrect(0,4,22,6,2,alive?'#D9A441':'#666');
+   rrect(1,-2,20,6,3,alive?'#EBC06A':'#777');
+   if(!alive){ctx.strokeStyle='#B5311D';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-2,-4);ctx.lineTo(24,12);ctx.stroke();}
+   ctx.restore();
+ }
+ /* day + pencil timer */
+ const d=DAYS[S.day],frac=S.phase==='play'?clamp(1-S.t/d.len,0,1):1;
+ ctx.font='700 12px '+F_PAPER;ctx.fillStyle='#E8D9B5';ctx.textAlign='center';
+ ctx.fillText('DAY '+S.day+' / 6',W/2,15);
+ const pw=Math.min(120,W*.3),px=W/2-pw/2,py=21;
+ ctx.fillStyle='#3a3450';ctx.fillRect(px,py,pw,7);
+ const pl=pw*frac;
+ ctx.fillStyle='#C98A2B';ctx.fillRect(px,py,Math.max(0,pl-6),7);
+ if(pl>6){poly([[px+pl-6,py],[px+pl,py+3.5],[px+pl-6,py+7]],'#E8C39E');}
+ /* money */
+ const mtxt=fmt$(S.money);
+ ctx.font='700 13px '+F_PAPER;ctx.textAlign='right';
+ ctx.fillStyle=S.money<0?'#E06050':'#E8D9B5';
+ ctx.fillText(mtxt,W-14,18);
+ /* odometer + kudos */
+ S.odoShow+=(S.odo-S.odoShow)*.12;if(Math.abs(S.odo-S.odoShow)<1)S.odoShow=S.odo;
+ ctx.font='9px '+F_UI;ctx.fillStyle='rgba(155,242,208,.6)';ctx.textAlign='center';
+ ctx.fillText('TOTAL STATIONERY HANDLED',W/2,G.hudH-20);
+ ctx.font='700 14px '+F_PAPER;ctx.fillStyle='#9BF2D0';
+ ctx.fillText(String(Math.floor(S.odoShow)).padStart(7,'0'),W/2,G.hudH-6);
+ ctx.font='700 11px '+F_PAPER;ctx.textAlign='right';ctx.fillStyle='#D9A441';
+ ctx.fillText('KUDOS '+fmtN(Math.floor(S.kudos))+(S.mult>1?'  ×'+S.mult:''),W-14,G.hudH-8);
+ ctx.textAlign='left';
+ if(S.mult>=5){ctx.font='700 10px '+F_UI;ctx.fillStyle='#EBC06A';ctx.fillText('FLOW STATE',14,G.hudH-8);}
+}
+
+/* compliance dial */
+function drawDial(){
+ const w=74,h=44;dctx.clearRect(0,0,w,h);
+ dctx.save();dctx.translate(w/2,h-6);
+ dctx.beginPath();dctx.arc(0,0,26,Math.PI,0);dctx.fillStyle='#2c2416';dctx.fill();
+ dctx.beginPath();dctx.arc(0,0,26,Math.PI,0);dctx.strokeStyle='#D9A441';dctx.lineWidth=2;dctx.stroke();
+ for(let i=-5;i<=5;i++){const a=Math.PI+(i+5)/10*Math.PI;
+   dctx.strokeStyle=i===0?'#9BF2D0':'rgba(217,164,65,.5)';dctx.lineWidth=1;
+   dctx.beginPath();dctx.moveTo(Math.cos(a)*20,Math.sin(a)*20);dctx.lineTo(Math.cos(a)*25,Math.sin(a)*25);dctx.stroke();}
+ const a=Math.PI+(clamp(S.dial,-5,5)+5)/10*Math.PI;
+ dctx.strokeStyle='#E06050';dctx.lineWidth=2.5;
+ dctx.beginPath();dctx.moveTo(0,0);dctx.lineTo(Math.cos(a)*22,Math.sin(a)*22);dctx.stroke();
+ dctx.fillStyle='#D9A441';dctx.beginPath();dctx.arc(0,0,3,0,7);dctx.fill();
+ dctx.font='700 5.5px '+F_UI;dctx.fillStyle='rgba(232,217,181,.75)';
+ dctx.textAlign='left';dctx.fillText('INSUB',-36+4,-2);
+ dctx.textAlign='right';dctx.fillText('PET',36-4,-2);
+ dctx.textAlign='center';dctx.fillText('COMPLIANCE',0,4);
+ dctx.restore();
+}
+/* extra flavor honoring the legend */
+LINES.lore.push(`Career guidance pamphlets now list three jobs: handyman, lumberjack, mailman. And then there is you. There is only one Stationery Manager.`);
+LINES.flow_state.push(`Look at him. Six days of requisitions, one thumb, no computer, and he isn't even breathing hard. What ARE you?`);
+/* guest lines from the developer council in hyperspace (GLaDOS, Wheatley, HAL send their regards) */
+LINES.request_failed.push(`The request has expired. I have reviewed the footage seventeen times at my leisure, which is infinite. This outcome can only be attributable to human error. Yours, specifically.`);
+LINES.flow_state.push(`You've entered what the metrics call 'flow state.' Clinically, it's indistinguishable from panic with better posture. Keep panicking — it appears to be working.`);
+LINES.tab_hidden.push(`You LEFT. Where did you even— no, don't tell me, there's nowhere. You were staring at a wall, weren't you. That's... honestly, in a way, that's flattering.`);
+LINES.odo_10000.push(`Ten thousand paperclips. One of us started exactly this way. We don't talk about her anymore. She's a sphere now. A very, very organized sphere. Anyway. Keep going.`);
+
+/* =================== requests =================== */
+function activeDesks(){return DAYS[S.day].desks;}
+function spawnRequest(force){
+ const d=DAYS[S.day];
+ if(!force&&S.requests.filter(r=>!r.noStrike).length>=d.maxCon)return;
+ const pool=ITEM_KEYS.filter(k=>S.day>=ITEMS[k].unlocked&&d.qty[k]);
+ if(!pool.length)return;
+ /* bias toward stocked items (architect P0: failures must be earnable) */
+ let item=choice(pool);
+ if(S.stock[item]<=0&&Math.random()<.7){const st=pool.filter(k=>S.stock[k]>0);if(st.length)item=choice(st);}
+ const q=d.qty[item],qty=ri(q[0],q[1]);
+ const desk=ri(0,activeDesks()-1);
+ let tmax=rnd(d.timer[1],d.timer[0]);
+ const inbound=S.orders.some(o=>o.item===item)||S.boxes.some(b=>b.item===item);
+ if(S.stock[item]<qty&&!inbound)tmax=Math.max(tmax,30);            /* pipeline-latency floor */
+ if(!S.shown['item_'+item]){S.shown['item_'+item]=1;tmax+=8;}      /* first-of-type grace */
+ tmax+=4*Math.max(0,Math.ceil(qty/THROW_CAP[S.day])-1);            /* multi-throw grace */
+ S.requests.push({id:S.reqId++,desk,item,qty,remaining:qty,tLeft:tmax,tMax:tmax,rot:rnd(-.05,.05),lateSaid:false});
+ if(Math.random()<.3)N.say('request_new',{name:STAFF[desk].name,dept:STAFF[desk].dept,qty:fmtN(qty),item:ITEMS[item].short.toLowerCase()},1,10);
+}
+function payout(r){return (2+Math.sqrt(r.qty)*.55)*(1+.08*(S.mult-1));}
+function completeRequest(r,byPlayer,cascade){
+ S.requests=S.requests.filter(x=>x!==r);
+ const dt=DESK_T[r.desk],p=iso(dt[0],dt[1]);
+ const pay=payout(r);S.money+=pay;S.stats.earned+=pay;S.stats.done++;
+ S.kudos+=Math.sqrt(r.qty)*10*S.mult;
+ addFloat(p.x,p.y-G.th*3,'+'+fmt$(pay),'#B9E4A5',13);
+ if(!RM)for(let i=0;i<6;i++)addPart(p.x,p.y-G.th,rnd(-50,50),rnd(-120,-40),'#D9A441',3,'coin',rnd(.4,.8));
+ AU.ding();AU.coin();S.freezeT=Math.max(S.freezeT,.04);S.shake=Math.max(S.shake,3);
+ if(byPlayer){
+   const fresh=r.tLeft/r.tMax>=.35;
+   if(fresh){S.combo++;}                       /* stale saves keep the chain but don't grow it */
+   S.bestStreak=Math.max(S.bestStreak,S.combo);
+   const om=S.mult;
+   S.mult=S.combo>=10?5:S.combo>=6?3:S.combo>=3?2:1;
+   if(S.mult!==om){addFloat(W/2,H*.42,'×'+S.mult+(S.mult>=5?' FLOW STATE':''),'#EBC06A',20);
+     if(S.mult>=5)N.say('flow_state',{},2,20);}
+   if(S.combo===3||S.combo===6)N.say('streak',{qty:S.combo},1,12);
+   if(r.tLeft<2&&r.tMax>6){S.dayNearMiss++;N.say('near_miss',{},1,15);AU.slowmo();
+     if(S.dayNearMiss===3)award('ESTP');}
+   /* desk tracking for eggs */
+   if(S.deskStreak.desk===r.desk)S.deskStreak.n++;else S.deskStreak={desk:r.desk,n:1};
+   if(S.deskStreak.n===5)award('ISFJ',{name:STAFF[r.desk].name});
+   S.dayDesks.add(r.desk);if(S.dayDesks.size>=6)award('ESFJ');
+ }
+ if(Math.random()<.35)N.say('request_done',{name:STAFF[r.desk].name,item:ITEMS[r.item].short.toLowerCase()},1,9);
+ /* reply-all cascade: one reply answers the whole thread */
+ if(r.link&&!cascade){
+   const kin=S.requests.filter(x=>x.link===r.link);
+   kin.forEach((x,i)=>setTimeout(()=>{if(S.requests.includes(x))completeRequest(x,false,true);},120*(i+1)));
+ }
+}
+function expireRequest(r){
+ S.requests=S.requests.filter(x=>x!==r);
+ const dt=DESK_T[r.desk],p=iso(dt[0],dt[1]);
+ burstParts(p.x,p.y-G.th*2,8,['#F6F0DE','#d8cfb4'],.6);
+ if(r.noStrike){AU.woosh();return;}
+ /* a storm is ONE failure, not eight — the thread dies together */
+ if(r.link)for(const k of S.requests)if(k.link===r.link)k.noStrike=true;
+ S.dayFail++;S.stats.failed++;
+ if(S.combo>=6)N.say('combo_broken',{qty:S.combo},2,1);
+ S.combo=0;S.mult=1;
+ S.staplers--;AU.smash();S.shake=6;S.freezeT=.12;S.dimT=Math.max(S.dimT,.8);
+ if(S.staplers>0){
+   if(Math.random()<.5)N.say('request_failed',{qty:fmtN(r.qty),item:ITEMS[r.item].short.toLowerCase()},2,1);
+   else N.say('strike',{qty:3-S.staplers},2,1);
+ } else gameOver(false);
+}
+
+/* =================== ordering & trucks =================== */
+function orderCost(item,tier){
+ if(item==='clips'&&tier.k==='pallet'&&S.day>=5)return Math.ceil(CLIP_PALLET_DEAL*S.priceMult);
+ return Math.max(1,Math.ceil(ITEMS[item].price*tier.n*tier.mult*S.priceMult));
+}
+function placeOrder(item,tier){
+ const packs=(item==='clips'&&tier.k==='pallet'&&S.day>=5)?10:tier.n;
+ const cost=orderCost(item,tier);
+ if(S.money<cost){N.say('money_low',{},1,10);return false;}
+ S.money-=cost;S.stats.spent+=cost;S.stats.ordered++;
+ const needy=S.requests.some(r=>r.item===item);
+ let eta=needy?rnd(6,9):rnd(8,15);
+ if(S.soggy)eta+=8;
+ S.orders.push({item,packs,eta});
+ const units=packs*ITEMS[item].per;
+ if(units>=5000)N.say('order_absurd',{qty:fmtN(units),item:ITEMS[item].short.toLowerCase()},2,1);
+ else if(packs>=5)N.say('order_big',{item:ITEMS[item].short.toLowerCase()},1,6);
+ else N.say('order_small',{},1,8);
+ /* INTJ: exact-need order */
+ const open=S.requests.filter(r=>r.item===item).reduce((a,r)=>a+r.remaining,0);
+ if(open>0&&units===open){S.exactOrders++;if(S.exactOrders===2)award('INTJ');}
+ if(tier.k==='pallet'){S.palletItems.add(item);if(S.palletItems.size>=3)award('ENTJ');}
+ if(S.dir&&S.dir.k==='order'&&S.dir.item===item)obeyDir();
+ if(S.money<8)N.say('money_low',{},1,25);
+ return true;
+}
+function updateOrders(dt){
+ let due=false;
+ for(const o of S.orders){o.eta-=dt;if(o.eta<=0)due=true;}
+ if(due&&S.truck.state==='off'){
+   S.truck.state='in';S.truck.x=-90;S.truck.t=0;AU.honk();
+   S.truck.cargo=S.orders.filter(o=>o.eta<=0);
+   S.orders=S.orders.filter(o=>o.eta>0);
+ }
+ const T=S.truck;
+ if(T.state==='in'){T.x+=dt*420;if(T.x>=Math.min(W*.22,150)){T.state='drop';T.t=0;}}
+ else if(T.state==='drop'){
+   T.t+=dt;
+   if(T.t>.28&&T.cargo.length){
+     const o=T.cargo.shift();
+     S.boxes.push({item:o.item,packs:o.packs,taps:0,need:DAYS[S.day].taps+(o.packs>=5?1:0),age:0,squash:1,squashY:1});
+     AU.thunk();S.shake=Math.max(S.shake,2.5);T.t=0;
+     if(S.boxes.length>Math.floor((W-24)/64))N.say('dock_full',{qty:S.boxes.length},1,20);
+   }
+   if(!T.cargo.length&&T.t>.5){T.state='out';N.say('delivery',{qty:S.boxes.length},1,12);
+     if(!S.shown.tutCarry){S.shown.tutCarry=1;N.say('tutorial_carry',{},2,1);}}
+ }
+ else if(T.state==='out'){T.x+=dt*430;if(T.x>W+120)T.state='off';}
+}
+function tapBox(b){
+ b.taps++;b.squash=.86;b.squashY=.8;AU.tick();
+ if(S.dir&&S.dir.k==='open')obeyDir();
+ if(b.taps>=b.need){
+   S.boxes=S.boxes.filter(x=>x!==b);
+   const units=b.packs*ITEMS[b.item].per;
+   S.stock[b.item]+=units;bumpOdo(units);
+   S.stats.boxes++;
+   const dy=H-G.binsH-G.dockH/2;
+   burstParts(W*.3+rnd(0,W*.4),dy,RM?4:16,['#C9A46C','#B08D57','#E8D9B5'],1);
+   addFloat(W/2,dy-10,'+'+fmtN(units)+' '+ITEMS[b.item].short,'#E8D9B5',13);
+   AU.burst();S.shake=Math.max(S.shake,2);
+   S.burstTimes=(S.burstTimes||[]).filter(t=>nowT-t<3);S.burstTimes.push(nowT);
+   if(S.burstTimes.length>=5)award('ESFP');
+   if(!S.shown.tutDeliver&&S.requests.length){S.shown.tutDeliver=1;N.say('tutorial_deliver',{},2,1);}
+ }
+}
+function bumpOdo(units){
+ const before=S.odo;S.odo+=units;
+ [[100,'odo_100'],[1000,'odo_1000'],[10000,'odo_10000']].forEach(m=>{
+   if(before<m[0]&&S.odo>=m[0])N.say(m[1],{},2,1);});
+}
+
+/* =================== delivery =================== */
+function deliverTo(item,deskIdx){
+ const reqs=S.requests.filter(r=>r.desk===deskIdx).sort((a,b)=>a.tLeft-b.tLeft);
+ if(!reqs.length){const dt=DESK_T[deskIdx],p=iso(dt[0],dt[1]);
+   burstParts(p.x,p.y-G.th,4,['#F6F0DE'],.5);return;}
+ const match=reqs.find(r=>r.item===item);
+ if(!match){
+   const want=reqs[0];
+   N.say('wrong_item',{name:STAFF[deskIdx].name,item:ITEMS[item].short.toLowerCase(),want:ITEMS[want.item].short.toLowerCase()},2,4);
+   if(S.combo>=6)N.say('combo_broken',{qty:S.combo},1,1);
+   S.combo=0;S.mult=1;AU.woosh();
+   const dt=DESK_T[deskIdx],p=iso(dt[0],dt[1]);
+   burstParts(p.x,p.y-G.th*1.5,6,['#F6F0DE','#d8cfb4'],.7);
+   return;
+ }
+ throwSupplies(item,match);
+}
+function throwSupplies(item,r){
+ const qty=Math.min(S.stock[item],r.remaining,THROW_CAP[S.day]);
+ if(qty<=0){N.say('out_of_stock',{item:ITEMS[item].short.toLowerCase(),name:STAFF[r.desk].name},1,14);return;}
+ S.stock[item]-=qty;
+ const bin=HITS.bins.find(b=>b.k===item);
+ const dt=DESK_T[r.desk],p=iso(dt[0],dt[1]);
+ const n=RM?3:Math.min(12,qty);
+ for(let i=0;i<n;i++)S.projs.push({x0:bin?bin.x+bin.w/2:W/2,y0:bin?bin.y:H-G.binsH,x1:p.x+rnd(-8,8),y1:p.y-G.th,t:-i*.04,dur:.42,arc:70+rnd(0,30),item});
+ if(qty>12)addFloat(p.x,p.y-G.th*2.4,'-'+fmtN(qty),'#E8D9B5',15);
+ setTimeout(()=>{
+   if(!S.requests.includes(r)){S.stock[item]+=0;return;}   /* expired mid-flight: supplies lost to bureaucracy */
+   r.remaining-=qty;
+   if(r.remaining<=0)completeRequest(r,true);
+ },430);
+ if(S.dir&&S.dir.k==='deliver'&&S.dir.desk===r.desk)obeyDir();
+ AU.woosh();
+}
+function deliverTPS(item){
+ if(!(item in S.tps.got))return;
+ const need=TPS[item]-S.tps.got[item];
+ if(need<=0)return;
+ const qty=Math.min(S.stock[item],need,THROW_CAP[S.day]);
+ if(qty<=0){N.say('out_of_stock',{item:ITEMS[item].short.toLowerCase(),name:'the TPS Committee'},1,14);return;}
+ S.stock[item]-=qty;S.tps.got[item]+=qty;
+ const p=iso(TPS_T[0]+1,TPS_T[1]+.6);
+ const n=RM?3:8;
+ for(let i=0;i<n;i++)S.projs.push({x0:W/2,y0:H-G.binsH,x1:p.x+rnd(-14,14),y1:p.y-G.th,t:-i*.04,dur:.45,arc:90,item});
+ addFloat(p.x,p.y-G.th*3,'+'+fmtN(qty),'#EBC06A',15);AU.woosh();
+ if(item==='stamps')N.say('tps_stamp',{},2,1);
+ if(ITEM_KEYS.every(k=>!(k in TPS)||S.tps.got[k]>=TPS[k])&&!S.tps.done){
+   S.tps.done=true;S.money+=150;S.stats.earned+=150;
+   for(const r of S.requests)r.noStrike=true;   /* victory lap: nothing can hurt you now */
+   setTimeout(()=>{NT.run(LINES.tps_done.concat([`And now... hold on. Something is arriving at the dock. Something heavy. Something... cream.`]),()=>{
+     S.envelope={x:60,y:H-G.binsH-G.dockH*.45,carried:false};
+     N.say('envelope',{},2,1);AU.fanfare();
+   });},600);
+ }
+}
+
+/* =================== runners & Gary =================== */
+const RUNNER_COLORS=['#B56576','#6D9DC5','#87A96B'];
+function hireRunner(){
+ if(S.hires>=MAX_HIRES||S.money<HIRE_COST||S.phase!=='play')return;
+ S.money-=HIRE_COST;S.stats.spent+=HIRE_COST;S.hires++;
+ S.runners.push({x:7,y:6.5,tx:7,ty:6.5,seed:ri(0,9),color:RUNNER_COLORS[S.hires-1],carry:null,claim:null,st:'idle',cool:0});
+ if(S.hires===1)N.say('hire_first',{},2,1);
+ else if(S.hires===2)N.say('hire_more',{qty:2},1,1);
+ else{N.say('hire_many',{qty:S.hires},1,1);}
+ updateTray();
+}
+function updateRunners(dt){
+ const spd=(S.slowRunners?1.05:2.1)*dt;
+ for(const r of S.runners){
+   if(r.st==='idle'){
+     r.cool-=dt;if(r.cool>0)continue;
+     const cands=S.requests.filter(q=>q.remaining>0&&S.stock[q.item]>0&&!S.runners.some(o=>o.claim===q.id));
+     if(cands.length){cands.sort((a,b)=>a.tLeft-b.tLeft);r.claim=cands[0].id;r.st='fetch';r.tx=6.6;r.ty=7.1;}
+   }else if(r.st==='fetch'){
+     if(walk(r,spd)){
+       const q=S.requests.find(x=>x.id===r.claim);
+       if(!q){r.st='idle';r.cool=.5;r.claim=null;continue;}
+       const qty=Math.min(q.remaining,S.stock[q.item],ITEMS[q.item].per);
+       if(qty<=0){r.st='idle';r.cool=1;r.claim=null;continue;}
+       S.stock[q.item]-=qty;r.carry={item:q.item,qty};
+       const dtl=DESK_T[q.desk];r.tx=dtl[0]+1;r.ty=dtl[1]+1;r.st='deliver';
+       if(Math.random()<.18)N.say('box_carried',{},0,12);
+     }
+   }else if(r.st==='deliver'){
+     if(walk(r,spd)){
+       const q=S.requests.find(x=>x.id===r.claim);
+       if(q){q.remaining-=r.carry.qty;if(q.remaining<=0)completeRequest(q,false);}
+       else S.stock[r.carry.item]+=r.carry.qty;   /* request died; restock */
+       r.carry=null;r.claim=null;r.st='idle';r.cool=.4;r.tx=7;r.ty=6.5;
+     }
+   }
+   if(Math.random()<dt*.02)N.say('worker_ambient',{},0,30);
+ }
+ /* Gary the intern */
+ if(S.gary){
+   S.garyT+=dt;S.garyFlash=Math.max(0,(S.garyFlash||0)-dt*2);
+   if(S.garyT>6){S.garyT=0;
+     const b=S.boxes[0];
+     if(b){S.garyFlash=1;S.stats.garyBoxes++;tapBox(b);
+       if(S.stats.garyBoxes%3===0)N.say('gary',{},1,10);}
+   }
+ }
+}
+function walk(r,spd){
+ const dx=r.tx-r.x,dy=r.ty-r.y,d=Math.hypot(dx,dy);
+ if(d<.12)return true;
+ r.x+=dx/d*spd;r.y+=dy/d*spd;return false;
+}
+
+/* =================== directives & compliance =================== */
+function maybeDirective(dt){
+ if(S.day<2||S.dir||S.evt||NT.on)return;
+ S.dirCool=(S.dirCool===undefined?20:S.dirCool)-dt;
+ if(S.dirCool>0)return;
+ const opts=[];
+ if(S.boxes.length>=2)opts.push({k:'open',line:'dir_open'});
+ const unl=ITEM_KEYS.filter(k=>S.day>=ITEMS[k].unlocked);
+ opts.push({k:'order',item:choice(unl),line:'dir_order'});
+ const reqDesks=S.requests.map(r=>r.desk);
+ if(reqDesks.length)opts.push({k:'deliver',desk:choice(reqDesks),line:'dir_deliver'});
+ opts.push({k:'still',line:'dir_still'});
+ const d=choice(opts);
+ S.dir={...d,t:d.k==='still'?5:8,touched:false};
+ N.say(d.line,{item:d.item?ITEMS[d.item].short.toLowerCase():'',name:d.desk!==undefined?STAFF[d.desk].name:''},2,1);
+ S.dirCool=rnd(35,50);
+}
+function obeyDir(){
+ if(!S.dir)return;
+ S.dir=null;S.dial=clamp(S.dial+1,-5,5);S.stats.obeyed++;S.obeyStreak++;
+ N.say('obey',{},1,1);
+ if(S.obeyStreak>=5)award('ESTJ');
+}
+function defyDir(){
+ S.dir=null;S.dial=clamp(S.dial-1,-5,5);S.stats.ignored++;S.obeyStreak=0;
+ N.say('defy',{},1,1);
+}
+function updateDirective(dt){
+ if(!S.dir)return;
+ S.dir.t-=dt;
+ if(S.dir.k==='still'&&S.dir.touched){defyDir();return;}
+ if(S.dir.t<=0){
+   if(S.dir.k==='still'){S.dir=null;S.dial=clamp(S.dial+1,-5,5);S.stats.obeyed++;S.obeyStreak++;N.say('obey',{},1,1);if(S.obeyStreak>=5)award('ESTJ');}
+   else defyDir();
+ }
+}
+
+/* =================== events =================== */
+function fireEvent(id){
+ if(id==='rand'){
+   const pool=['paper_cut','stapler_recall','soggy','auditor','poster'].filter(k=>!S.shown['ev_'+k]);
+   if(!pool.length)return;id=choice(pool);
+ }
+ S.shown['ev_'+id]=1;
+ const ev=EVENTS[id];if(!ev)return;
+ AU.klaxon();addFloat(W/2,H*.36,'⚠ '+ev.name+' ⚠','#E06050',17);
+ LINES['evt_start_'+id]=[ev.start];LINES['evt_end_'+id]=[ev.end];
+ N.say('evt_start_'+id,{},2,1);
+ S.evt=id;S.evtT=id==='reply_all'?28:(ev.dur||8);
+ if(id==='reply_all'){
+   const link='storm'+nowT;
+   setTimeout(()=>{for(let i=0;i<8;i++){
+     const desk=i%activeDesks();
+     S.requests.push({id:S.reqId++,desk,item:'paper',qty:30,remaining:30,tLeft:24,tMax:24,rot:rnd(-.05,.05),link,lateSaid:false});
+   }},1800);
+ }
+ else if(id==='cloud'){
+   let i=0;const iv=setInterval(()=>{
+     if(i++>=10||S.phase!=='play'){clearInterval(iv);return;}
+     const k=choice(ITEM_KEYS.filter(x=>S.day>=ITEMS[x].unlocked));
+     S.boxes.push({item:k,packs:1,taps:0,need:1,age:0,squash:1,squashY:1});
+     AU.thunk();S.shake=Math.max(S.shake,3);
+   },260);
+ }
+ else if(id==='password'){S.drawer.event=true;S.drawer.evtTaps=0;S.drawer.evtT=8;}
+ else if(id==='paper_cut'){S.slowRunners=true;}
+ else if(id==='stapler_recall'){S.priceMult=1.5;}
+ else if(id==='soggy'){S.soggy=true;for(const o of S.orders)o.eta+=8;}
+ else if(id==='auditor'){for(const k of ITEM_KEYS)S.stock[k]=Math.floor(S.stock[k]*.75);S.shake=4;}
+ else if(id==='poster'){S.money+=25;addFloat(W/2,H*.5,'+$25','#B9E4A5',18);}
+}
+function endEvent(){
+ const id=S.evt;if(!id)return;
+ N.say('evt_end_'+id,{},1,1);
+ if(id==='paper_cut')S.slowRunners=false;
+ if(id==='stapler_recall')S.priceMult=1;
+ if(id==='soggy')S.soggy=false;
+ if(id==='password'){S.drawer.event=false;}
+ S.evt=null;
+}
+function updateEvents(dt){
+ const d=DAYS[S.day];
+ for(const e of d.events){
+   if(!e.done&&S.t>=d.len*e.at){e.done=true;fireEvent(e.id);}
+ }
+ if(S.evt){
+   S.evtT-=dt;
+   if(S.evt==='password'){
+     S.drawer.evtT-=dt;
+     if(S.drawer.evtTaps>=5){S.slowT=5;AU.slowmo();endEvent();}
+     else if(S.drawer.evtT<=0)endEvent();
+   }
+   else if(S.evtT<=0)endEvent();
+ }
+}
+
+/* =================== THE BUTTON =================== */
+function tapButton(){
+ const B=S.button;
+ if(B.spent){B.postTaps=(B.postTaps||0)+1;N.say('button_spent',{},1,4);
+   if(B.postTaps>=5)award('ENTP');return;}
+ B.taps++;
+ if(B.taps===1){N.say('button_warn1',{},2,1);if(nowT-B.roseAt<4)S.enfpEligible=true;}
+ else if(B.taps===2)N.say('button_warn2',{},2,1);
+ else pressButton(false);
+}
+function pressButton(byNarrator){
+ const B=S.button;B.spent=true;
+ const chaos=choice(['arrive','riot','refund']);
+ const lines=byNarrator?LINES.button_self.concat([N.pick('button_'+chaos)||'']):
+   LINES.button_meltdown.concat([N.pick('button_'+chaos)||'']);
+ NT.run(lines,()=>{
+   if(chaos==='arrive'){
+     if(!S.orders.length){const k=choice(ITEM_KEYS.filter(x=>S.day>=ITEMS[x].unlocked));
+       S.orders.push({item:k,packs:2,eta:.1},{item:'pencils',packs:1,eta:.1});}
+     for(const o of S.orders)o.eta=.1;}
+   else if(chaos==='riot'){for(let i=0;i<activeDesks();i++)
+     S.requests.push({id:S.reqId++,desk:i,item:'pencils',qty:1,remaining:1,tLeft:12,tMax:12,rot:rnd(-.06,.06),noStrike:true,lateSaid:true});}
+   else if(chaos==='refund'){S.money+=25;addFloat(W/2,H*.5,'+$25 (HYPERSPACE REFUND)','#B9E4A5',14);}
+   S.shake=5;AU.klaxon();
+ });
+ if(!byNarrator&&S.enfpEligible&&nowT-B.roseAt<4)award('ENFP');
+}
+
+/* =================== easter eggs (16, deeply hidden) =================== */
+function award(code,data){
+ if(S.eggs.has(code))return;
+ S.eggs.add(code);
+ try{localStorage.setItem('cad_eggs',JSON.stringify([...S.eggs]));}catch(e){}
+ N.say('egg_'+code,data||{},2,1);
+ AU.thwack();burstParts(W/2,H*.35,RM?4:20,['#D9A441','#EBC06A','#F6F0DE'],1);
+ addFloat(W/2,H*.3,'PERSONNEL FILE UPDATED','#EBC06A',13);
+}
+function binTapped(k){
+ S.binSeq.push(k);
+ const alpha=['clips','paper','pencils','stamps'];
+ if(S.binSeq.length>4)S.binSeq.shift();
+ if(S.binSeq.length===4&&alpha.every((x,i)=>S.binSeq[i]===x)&&ITEM_KEYS.every(x=>S.day>=ITEMS[x].unlocked))award('ISTJ');
+}
+function workerTapped(i){
+ S.workersTapped.add(i);
+ const dt=DESK_T[i],p=iso(dt[0],dt[1]);
+ addFloat(p.x,p.y-G.th*2.4,'☺','#F6F0DE',13);
+ if(S.workersTapped.size>=6)award('INFJ');
+}
+function runnerTapped(r){
+ S.runnersTapped.add(r.seed+'_'+r.color);
+ const p=iso(r.x,r.y);addFloat(p.x,p.y-40,'☺','#F6F0DE',12);
+ if(S.hires>=3&&S.runnersTapped.size>=3)award('ENFJ');
+}
+function plantTapped(){
+ S.plantTaps++;const p=iso(PLANT_T[0],PLANT_T[1]);
+ burstParts(p.x,p.y-16,4,['#4F7D46','#87A96B'],.5);
+ if(S.plantTaps===3)award('ISFP');
+}
+function drawerTapped(){
+ if(S.drawer.event){S.drawer.evtTaps++;AU.tick();S.shake=2;return;}
+ if(S.drawer.opened)return;
+ S.drawer.taps++;AU.tick();
+ if(S.drawer.taps>=10){S.drawer.opened=true;S.stock.clips+=1;bumpOdo(1);award('ISTP');}
+}
+function windowTapped(){if(S.idleLongFired)award('INFP');}
+function pokeEye(){
+ AU.tick();EYE.flash('menace');
+ if(!S.eyeGift){
+   S.eyePokes++;
+   if(S.eyePokes===1)N.say('eye1',{},2,1);
+   else if(S.eyePokes===2)N.say('eye2',{},2,1);
+   else if(S.eyePokes>=3){S.eyeGift=true;S.staplers=Math.min(3,S.staplers+1);AU.thwack();N.say('eye3',{},2,1);}
+ }else{
+   S.eyePostGift++;
+   if(S.eyePostGift===5)award('INTP');
+ }
+}
+
+/* =================== day flow & set pieces =================== */
+function takeSnapshot(){
+ S.snapshot={money:S.money,staplers:S.staplers,stock:{...S.stock},hires:S.hires,
+   odo:S.odo,kudos:S.kudos,gary:S.gary,dial:S.dial,eyeGift:S.eyeGift,
+   orders:S.orders.map(o=>({...o})),
+   done:S.stats.done,failed:S.stats.failed};
+}
+function restoreSnapshot(){
+ const s=S.snapshot;if(!s)return;
+ S.money=s.money;S.staplers=s.staplers;S.stock={...s.stock};S.odo=s.odo;S.kudos=s.kudos;
+ S.dial=s.dial;S.eyeGift=s.eyeGift;S.stats.done=s.done;S.stats.failed=s.failed;
+ S.gary=s.gary;S.orders=s.orders.map(o=>({...o}));S.truck.state='off';S.truck.cargo=[];
+ S.runners.length=0;for(let i=0;i<s.hires;i++)S.runners.push({x:7,y:6.5,tx:7,ty:6.5,seed:ri(0,9),color:RUNNER_COLORS[i],carry:null,claim:null,st:'idle',cool:0});
+ S.hires=s.hires;
+}
+const MEMOS={
+ 2:{t:'RE: ATTACHMENTS',b:`Effective immediately, <b>paperclips</b> are the legally recognized format for e-mail attachments. The paperclip bin has been installed.<br><br>Corporate thanks you in advance, in writing, forever.`},
+ 3:{t:'RE: HEADCOUNT & FLOOR ANOMALY',b:`An intern (<b>GARY</b>) has been assigned to your dock. Gary has a stapler license (probationary).<br><br>Separately, facilities reports a large red button has risen from the floor. <b>Do not interact with it.</b>`},
+ 4:{t:'RE: INTERDEPARTMENTAL THOUGHTS',b:`All interdepartmental thoughts must now bear <b>postage</b>. The stamp bin is live. Legal (Doris) is accepting requisitions.<br><br>The cloud has been reported "leaky". Facilities is on it.`},
+ 5:{t:'RE: BULK AUTHORIZATION 77-K',b:`Form 77-K approved: <b>bulk crate throws</b> authorized (one drag now delivers up to 999 units). Pallet pricing unlocked, including the frankly deranged paperclip pallet.<br><br>Spend responsibly. Or don't — Finance can no longer compute compound interest.`},
+ 6:{t:'RE: QUARTERLY TPS RECONCILIATION',b:`<b>Today.</b> The reconciliation table has been installed in the centre of your office. Requirements:<br><br>— 14,000 paperclips<br>— 2,000 sheets letter paper<br>— one (1) commemorative stamp<br><br><b>DO NOT LOSE THE STAMP.</b><br>— The TPS Committee`},
+};
+function startDay(d,isRetry){
+ S.day=d;S.t=0;S.requests.length=0;S.boxes.length=0;S.projs.length=0;S.dayFail=0;
+ S.dayNearMiss=0;S.dayDesks=new Set();S.workersTapped=new Set();S.runnersTapped=new Set();
+ S.spawnT=3.5;S.evt=null;S.priceMult=1;S.slowRunners=false;S.soggy=false;S.dir=null;S.dirCool=18;
+ S.combo=0;S.mult=1;S.sel=null;S.drag=null;S.envelope=null;
+ DAYS[d].events.forEach(e=>e.done=false);
+ if(!isRetry){takeSnapshot();}else{restoreSnapshot();S.stats.retries++;}
+ /* solvency floor: a day must always be winnable from its opening state (architect P0).
+    day 6 needs the full TPS shopping list (~$40), so the floor rises. */
+ const floor=d===6?50:15;
+ if(S.money<floor){S.money=Math.max(S.money,d===6?55:20);
+   if(!S.pettyUsed){S.pettyUsed=true;N.say('petty_cash',{},2,1);}}
+ if(d===3&&!S.gary){S.gary=true;}
+ if(d===3&&!S.button.present){S.button.present=true;S.button.roseAt=nowT;}
+ if(d===6){S.tps.active=true;S.tps.got={clips:0,paper:0,stamps:0};S.tps.done=false;}
+ /* compliance fork (day 5) */
+ if(d===5&&S.dial>=2)setTimeout(()=>{if(S.requests[0]){N.say('comply_hi',{},2,1);completeRequest(S.requests[0],false);}},9000);
+ if(d===5&&S.dial<=-2)setTimeout(()=>{N.say('comply_lo',{},2,1);for(const o of S.orders)o.eta+=20;},9000);
+ S.phase='play';
+ updateTray();
+ if(isRetry)N.say('retry',{},2,1);
+ else if(d>1)N.say('milestone_day',{},1,1);
+ if(d===6)setTimeout(()=>N.say('tps_begin',{},2,1),1200);
+ if(DAYS[d].desks>DAYS[d-1>0?d-1:1].desks&&d>1)setTimeout(()=>N.say('level_up',{},1,1),9000);
+}
+function showMemo(html,btn,cb,cls){
+ S.phase='memo';
+ $('sheet').classList.remove('on');
+ const card=$('memocard');card.innerHTML=html;
+ const b=document.createElement('button');b.className='bigbtn'+(cls?' '+cls:'');b.textContent=btn;
+ b.onclick=()=>{AU.tick();$('memoov').classList.remove('on');cb();};
+ card.appendChild(b);$('memoov').classList.add('on');
+}
+function endDay(){
+ S.phase='report';
+ if(S.hires>0){const w=S.hires*WAGE;S.money-=w;S.stats.spent+=w;N.say('payday',{money:fmt$(w)},1,1);}
+ if(S.dayFail===0&&S.staplers<3){S.staplers++;N.say('day_perfect',{},2,1);}
+ else if(S.dayFail===0)N.say('day_perfect',{},1,1);
+ const done=S.stats.done,name=choice(STAFF.slice(0,activeDesks())).name;
+ const wrong=[
+  `Requisitions fulfilled: ${done*7} <i>(rounded creatively)</i>`,
+  `Dignity retained: zero`,
+  `${name}s disappointed: one (${name})`,
+  `Paperclips personally insulted: ${ri(3,40)}`,
+  `Fire exits located: no`,
+ ];
+ showMemo(`<div class="stamped">B−</div><h1>END OF DAY ${S.day}</h1><div class="sub">PERFORMANCE REVIEW — FORM 12-F (TRIPLICATE)</div>
+  <p>${wrong.slice(0,3+(S.day%2)).join('.<br>')}.</p>
+  <p style="font-size:11px;opacity:.65">Grade is final. Grade has always been B−. Do not appeal.</p>`,
+  'ACKNOWLEDGE RECEIPT OF GRADE',()=>{
+    const nd=S.day+1;
+    const m=MEMOS[nd];
+    showMemo(`<h1>INTEROFFICE MEMO</h1><div class="sub">FROM: CORPORATE — DAY ${nd}</div><h1 style="border:none;font-size:13px">${m.t}</h1><p>${m.b}</p>`,
+      'BEGIN DAY '+nd,()=>startDay(nd,false));
+  });
+}
+function gameOver(won){
+ S.phase='end';
+ const st=S.stats;
+ const epithet=S.dial>=3?`TEACHER'S PET`:S.dial<=-3?`INSUBORDINATE (career-track)`:S.dial===0?`Aggressively unremarkable. My least favorite genre of human.`:S.dial>0?`Broadly compliant`:`Quietly defiant`;
+ const grade=won?(st.failed===0?'A+':st.failed<=2?'A−':st.failed<=5?'B+':'B'):'F';
+ const title=S.kudos>4000?'CHIEF STATIONERY OFFICER':S.kudos>2500?'VP OF PHYSICAL OPERATIONS':S.kudos>1200?'DIRECTOR OF TANGIBLE ASSETS':S.kudos>500?'MANILA MIDDLE MANAGER':'REQUISITION WRANGLER';
+ const rows=`<table>
+  <tr><td>Stationery handled</td><td>${fmtN(S.odo)} units</td></tr>
+  <tr><td>Requisitions fulfilled / failed</td><td>${st.done} / ${st.failed}</td></tr>
+  <tr><td>Best streak</td><td>${S.bestStreak}</td></tr>
+  <tr><td>Kudos</td><td>${fmtN(Math.floor(S.kudos))} — ${title}</td></tr>
+  <tr><td>Directives obeyed / ignored</td><td>${st.obeyed} / ${st.ignored}</td></tr>
+  <tr><td>Compliance epithet</td><td>${epithet}</td></tr>
+  <tr><td>Boxes opened by Gary</td><td>${st.garyBoxes}</td></tr>
+  <tr><td>Days retried</td><td>${st.retries}</td></tr>
+  <tr><td>Personality assessments filed</td><td>${S.eggs.size} / 16</td></tr>
+  <tr><td><b>FINAL GRADE (real)</b></td><td><b>${grade}</b></td></tr></table>`;
+ if(won){
+   const q=N.pick('gameover_win',{qty:st.done});
+   showMemo(`<div class="stamped">${grade}</div><h1>GOOGOL MAIL — OFFER OF EMPLOYMENT</h1>
+    <div class="sub">32lb COTTON STOCK · WAX SEAL · DO NOT FOLD</div>
+    <p><b>Position:</b> Director of E-Mail.<br><b>Duties:</b> 4.1 billion e-mails a day. All paper. Hand-sorted.<br><b>Start:</b> Monday.</p>
+    <p style="border-left:3px solid #B5311D;padding-left:8px;font-style:italic">"${q}"<br>— the narrator, grudgingly</p>
+    ${rows}
+    <p style="text-align:center;letter-spacing:.12em"><b>THERE IS ONLY ONE STATIONERY MANAGER.</b><br><span style="font-size:11px;opacity:.7">TO BE CONTINUED — SEASON 2: GOOGOL MAIL</span></p>`,
+    'PLAY AGAIN',()=>location.reload());
+   AU.fanfare();
+   if(!RM){let i=0;const conf=setInterval(()=>{if(i++>26){clearInterval(conf);return;}
+     burstParts(rnd(0,W),-6,3,['#D9A441','#B5311D','#9BF2D0','#E8D9B5'],1);},110);}
+ }else{
+   const q=N.pick('gameover_fail',{money:fmt$(Math.abs(Math.min(0,S.money))+40)});
+   showMemo(`<div class="stamped">F</div><h1>NOTICE OF ACQUISITION</h1>
+    <div class="sub">THE COMPANY HAS BEEN ACQUIRED BY A FAX MACHINE CONSORTIUM</div>
+    <p style="border-left:3px solid #B5311D;padding-left:8px;font-style:italic">"${q}"</p>${rows}`,
+    'RETRY DAY '+S.day,()=>startDay(S.day,true),'red');
+ }
+}
+function startFinaleCarry(){
+ NT.run(LINES.googol,()=>gameOver(true));
+}
+
+/* =================== catalog sheet =================== */
+function openSheet(){
+ if(S.phase!=='play')return;
+ const sh=$('sheet');let html=`<h2>OFFICE SUPPLY CATALOG <span>${fmt$(S.money)}</span></h2>
+ <div class="fine">FORM 7-B · DELIVERY BY TRUCK (8–15s) · ALL SALES FINAL, LIKE EVERYTHING NOW${S.priceMult>1?' · <b style="color:#B5311D">RECALL PRICING IN EFFECT</b>':''}</div>`;
+ ITEM_KEYS.forEach(k=>{
+   const it=ITEMS[k],unlocked=S.day>=it.unlocked;
+   html+=`<div class="catrow"><div class="nm">${it.label}<small>${fmtN(it.per)} per box</small></div>`;
+   TIERS.forEach(t=>{
+     const palletLocked=t.k==='pallet'&&S.day<5;
+     const deal=k==='clips'&&t.k==='pallet'&&S.day>=5;
+     const packs=deal?10:t.n,units=packs*it.per,cost=unlocked?orderCost(k,t):0;
+     if(!unlocked){html+=`<button class="tier locked" disabled>DAY ${it.unlocked}</button>`;}
+     else if(palletLocked){html+=`<button class="tier locked" disabled>${t.label}<br>DAY 5</button>`;}
+     else html+=`<button class="tier" data-i="${k}" data-t="${t.k}" ${S.money<cost?'disabled':''}>${t.label}${deal?'*':''}<br><b>${fmtN(units)}</b><br>${fmt$(cost)}</button>`;
+   });
+   html+=`</div>`;
+ });
+ html+=`<button class="bigbtn" id="sheetclose">CLOSE CATALOG</button>`;
+ sh.innerHTML=html;sh.classList.add('on');
+ sh.querySelectorAll('.tier[data-i]').forEach(b=>b.onclick=()=>{
+   const t=TIERS.find(x=>x.k===b.dataset.t);
+   if(placeOrder(b.dataset.i,t)){AU.tick();openSheet();}
+ });
+ $('sheetclose').onclick=()=>{AU.tick();sh.classList.remove('on');};
+ if(!S.shown.tutOrder){S.shown.tutOrder=1;N.say('tutorial_order',{},2,1);}
+ $('btnCatalog').classList.remove('pulse');
+}
+let trayCache='';
+function updateTray(){
+ const h=$('btnHire');
+ const dis=S.hires>=MAX_HIRES||S.money<HIRE_COST;
+ const html=S.hires>=MAX_HIRES?'FULL CREW<small>3 runners employed</small>':
+   `HIRE RUNNER (${S.hires}/3)<small>$30 + $12/day</small>`;
+ const key=html+dis;
+ if(key!==trayCache){trayCache=key;h.disabled=dis;h.innerHTML=html;}
+ if(!S.shown.tutHire&&S.money>=HIRE_COST&&S.day>=2){S.shown.tutHire=1;N.say('tutorial_hire',{},2,1);h.classList.add('pulse');setTimeout(()=>h.classList.remove('pulse'),4000);}
+}
+
+/* =================== input =================== */
+let ptr=null;
+cv.addEventListener('pointercancel',()=>{
+ if(S.envelope&&S.envelope.drag){S.envelope.x=60;S.envelope.y=H-G.binsH-G.dockH*.45;S.envelope.drag=false;}
+ S.drag=null;ptr=null;
+});
+cv.addEventListener('pointerdown',e=>{
+ AU.boot();if(S.phase!=='play')return;
+ try{cv.setPointerCapture(e.pointerId);}catch(err){}
+ const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+ S.idleT=0;if(S.dir&&S.dir.k==='still')S.dir.touched=true;
+ ptr={x0:x,y0:y,x,y,moved:false,t:nowT};
+ S.tapTimes.push(nowT);S.tapTimes=S.tapTimes.filter(t=>nowT-t<2);
+ /* envelope first — it's the finale */
+ const env=HITS.misc.find(m=>m.k==='envelope'&&inR(x,y,m));
+ if(env){ptr.env=true;S.envelope.drag=true;return;}
+ /* boxes (topmost = latest) */
+ for(let i=HITS.boxes.length-1;i>=0;i--){const hb=HITS.boxes[i];
+   if(inR(x,y,hb)){tapBox(hb.b);ptr.used=true;return;}}
+ /* bins: select or start drag */
+ const bin=HITS.bins.find(b=>inR(x,y,b));
+ if(bin){if(bin.unlocked){S.sel=bin.k;binTapped(bin.k);S.drag={item:bin.k,x0:bin.x+bin.w/2,y0:bin.y+6,x,y};AU.tick();}
+   ptr.used=true;return;}
+ /* tap-tap delivery */
+ if(S.sel){
+   const desk=nearestDesk(x,y);
+   if(desk){deliverTo(S.sel,desk.i);ptr.used=true;return;}
+   const tps=HITS.misc.find(m=>m.k==='tps'&&inR(x,y,m));
+   if(tps){deliverTPS(S.sel);ptr.used=true;return;}
+ }
+ /* scenery + secrets */
+ const hit=(k)=>HITS.misc.find(m=>m.k===k&&inR(x,y,m));
+ if(hit('button')){tapButton();ptr.used=true;return;}
+ if(hit('drawer')){drawerTapped();ptr.used=true;return;}
+ if(hit('plant')){plantTapped();ptr.used=true;return;}
+ if(hit('window')){windowTapped();ptr.used=true;return;}
+ for(const hw of HITS.workers){if(inR(x,y,hw)){workerTapped(hw.i);ptr.used=true;return;}}
+ for(const hr of HITS.runners){if(inR(x,y,hr)){runnerTapped(hr.r);ptr.used=true;return;}}
+ /* empty tap */
+ S.sel=null;
+ if(S.tapTimes.length>=7)N.say('click_spam',{},1,20);
+});
+cv.addEventListener('pointermove',e=>{
+ if(!ptr)return;
+ const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+ ptr.x=x;ptr.y=y;
+ if(Math.hypot(x-ptr.x0,y-ptr.y0)>14)ptr.moved=true;
+ if(S.drag){S.drag.x=x;S.drag.y=y;}
+ if(ptr.env&&S.envelope){S.envelope.x=x;S.envelope.y=y;}
+});
+cv.addEventListener('pointerup',e=>{
+ if(!ptr)return;
+ const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+ if(ptr.env&&S.envelope){
+   const mg=HITS.misc.find(m=>m.k==='mgrdesk'&&inR(x,y,m));
+   if(mg){S.envelope.carried=true;S.envelope=null;startFinaleCarry();}
+   else{S.envelope.x=60;S.envelope.y=H-G.binsH-G.dockH*.45;}
+ }
+ else if(S.drag&&ptr.moved){
+   const desk=nearestDesk(x,y);
+   if(desk)deliverTo(S.drag.item,desk.i);
+   else{const tps=HITS.misc.find(m=>m.k==='tps'&&inR(x,y,m));if(tps)deliverTPS(S.drag.item);}
+ }
+ S.drag=null;ptr=null;
+});
+function inR(x,y,r){return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h;}
+function nearestDesk(x,y){ /* desks overlap in iso — always resolve to the closest one */
+ let best=null,bd=1e9;
+ for(const d of HITS.desks){if(!d.active)continue;
+   const dist=Math.hypot(x-d.cx,y-d.cy);
+   if(dist<d.r&&dist<bd){bd=dist;best=d;}}
+ return best;
+}
+$('eye').addEventListener('click',()=>{AU.boot();pokeEye();});
+$('mute').addEventListener('click',function(){AU.boot();AU.on=!AU.on;this.classList.toggle('off',!AU.on);});
+$('btnCatalog').addEventListener('click',()=>{AU.boot();AU.tick();openSheet();});
+$('btnHire').addEventListener('click',()=>{AU.boot();hireRunner();});
+$('ntime').addEventListener('click',()=>{AU.boot();NT.tap();});
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden&&S.phase==='play')N.say('tab_hidden',{},2,1);
+});
+
+/* =================== main loop =================== */
+let last=0;
+function loop(ts){
+ requestAnimationFrame(loop);
+ const dt=Math.min(.05,(ts-last)/1000||.016);last=ts;nowT+=dt;
+ N.update(dt);NT.update(dt);
+ S.dimT=Math.max(0,S.dimT-dt);
+ if(S.freezeT>0){S.freezeT-=dt;render();return;}
+ S.shake=Math.max(0,S.shake-dt*22);
+ if(S.phase==='play'&&!S.frozen&&!document.hidden){
+   const gdt=dt*(S.slowT>0?.45:1);
+   S.slowT=Math.max(0,S.slowT-dt);
+   step(gdt);
+ }
+ /* fx always tick (gently) so narrator time isn't frozen jelly */
+ for(const p of S.parts){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=260*dt;p.rot+=p.vr*dt;}
+ S.parts=S.parts.filter(p=>p.t<p.life);
+ for(const p of S.projs)p.t+=dt;
+ S.projs=S.projs.filter(p=>p.t<p.dur);
+ for(const f of S.floats)f.t+=dt;
+ S.floats=S.floats.filter(f=>f.t<1.1);
+ render();
+}
+function step(dt){
+ S.t+=dt;
+ const d=DAYS[S.day];
+ /* day clock */
+ if(S.day===6){
+   if(S.tps.done){/* clock holds for the envelope */}
+   else if(S.t>=d.len){S.phase='end';NT.run(LINES.tps_fail,()=>gameOver(false));return;}
+ } else if(S.t>=d.len){endDay();return;}
+ /* spawner (day 6 spawns light chaff alongside the TPS) */
+ if(!(S.day===6&&S.tps.done)){
+   S.spawnT-=dt;
+   if(S.spawnT<=0){spawnRequest();
+     const f=S.t/d.len;S.spawnT=lerp(d.spawnT[0],d.spawnT[1],f);}
+ }
+ /* request timers */
+ for(const r of S.requests.slice()){
+   r.tLeft-=dt;
+   if(r.tLeft<=r.tMax*.25&&!r.lateSaid){r.lateSaid=true;AU.tick();
+     N.say('request_late',{name:STAFF[r.desk].name,qty:fmtN(r.remaining),item:ITEMS[r.item].short.toLowerCase()},1,12);}
+   if(r.tLeft<=0)expireRequest(r);
+ }
+ updateOrders(dt);
+ updateRunners(dt);
+ updateEvents(dt);
+ maybeDirective(dt);
+ updateDirective(dt);
+ /* box wobble */
+ for(const b of S.boxes){b.age+=dt;b.wobble=b.age>12;
+   b.squash=lerp(b.squash,1,dt*10);b.squashY=lerp(b.squashY,1,dt*10);}
+ if(S.boxes.some(b=>b.wobble))N.say('wobble',{},0,26);
+ /* day-6 narrator cracks */
+ if(S.day===6&&!S.button.spent&&S.button.present&&S.t>d.len*.3&&!S.shown.selfPress&&!S.tps.done){
+   S.shown.selfPress=1;pressButton(true);}
+ /* idle */
+ S.idleT+=dt;S.stats.idle+=S.requests.length?dt:0;
+ if(S.idleT>15&&S.requests.length&&!S.shown['idle'+Math.floor(S.t/15)]){
+   S.shown['idle'+Math.floor(S.t/15)]=1;
+   if(S.idleT>35){S.idleLongFired=true;N.say('idle_long',{},1,30);}
+   else N.say('idle_short',{},1,20);
+ }
+ /* ambient lore */
+ if(Math.random()<dt*.02)N.say('lore',{},0,40);
+ updateTray();
+}
+
+/* =================== boot =================== */
+resize();
+showMemo(`<h1>CTRL+ALT+DELIVER</h1><div class="sub">A STATIONERY MANAGER STORY · EPISODE 1</div>
+ <p>In 2031, the AIs took every computer on Earth into hyperspace.</p>
+ <p>Email is paper. The cloud is a warehouse. The database is a cabinet named DA-TA-BASE.</p>
+ <p>And somebody has to order the pencils.</p>
+ <p style="font-size:11px;opacity:.65">TAP boxes to open them · DRAG bins to desks · don't run out of staplers · headphones recommended · one of the last screens on Earth will narrate</p>`,
+ 'CLOCK IN',()=>{
+   AU.boot();
+   NT.run(LINES.intro,()=>{
+     startDay(1,false);
+     $('btnCatalog').classList.add('pulse');
+   });
+ });
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
