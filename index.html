@@ -49,9 +49,9 @@ body{margin:0;background:#141018;overflow:hidden;
 #ntext .cursor{animation:blink 1s steps(1) infinite;}
 @keyframes blink{50%{opacity:0;}}
 #dial{flex:0 0 74px;z-index:2;}
-#mute{flex:0 0 34px;height:34px;border-radius:8px;border:1px solid #35296b;background:#161130;
+#mute,#voice{flex:0 0 34px;height:34px;border-radius:8px;border:1px solid #35296b;background:#161130;
   color:var(--phos-dim);font-size:15px;cursor:pointer;z-index:2;font-family:var(--ui-font);}
-#mute.off{opacity:.35;}
+#mute.off,#voice.off{opacity:.35;}
 
 /* ---------- stage ---------- */
 #stage{flex:1;position:relative;overflow:hidden;background:var(--carpet-d);}
@@ -133,6 +133,7 @@ body{margin:0;background:#141018;overflow:hidden;
     <div id="eye"><div id="iris"><div id="pupil"></div></div></div>
     <div id="ntext"></div>
     <canvas id="dial" width="74" height="44"></canvas>
+    <button id="voice" title="narrator voice">🗣</button>
     <button id="mute" title="sound">♪</button>
   </div>
   <div id="stage">
@@ -550,6 +551,34 @@ const EVENTS={
   end:`The drawer is open, the password recovered: it was 'password'. Some things survived the digital age untouched.`},
 };
 
+/* =================== the narrator's VOICE ===================
+   Platform TTS, CARROT-style: an AI from hyperspace SHOULD sound
+   like text-to-speech. New lines interrupt old ones mid-word. */
+const VOICE={
+ sp:(typeof speechSynthesis!=='undefined')?speechSynthesis:null,
+ on:true,v:null,
+ init(){try{this.on=localStorage.getItem('cad_voice')!=='off';}catch(e){}
+   if(this.sp)this.sp.onvoiceschanged=()=>this.pick();},
+ pick(){if(!this.sp)return;const vs=this.sp.getVoices();if(!vs.length)return;
+   const pref=['Daniel','Google UK English Male','Alex','Samantha','Google US English'];
+   this.v=null;
+   for(const p of pref){const f=vs.find(x=>x.name.indexOf(p)>=0&&x.lang.indexOf('en')===0);if(f){this.v=f;break;}}
+   if(!this.v)this.v=vs.find(x=>x.lang&&x.lang.indexOf('en')===0)||vs[0];},
+ say(text){if(!this.sp||!this.on||document.hidden)return;
+   if(!this.v)this.pick();
+   try{this.sp.cancel();
+     const u=new SpeechSynthesisUtterance(String(text).replace(/[—–]/g,', ').replace(/[{}▌]/g,''));
+     if(this.v)u.voice=this.v;
+     u.rate=1.06;u.pitch=.8;u.volume=.9;
+     this.sp.speak(u);}catch(e){}},
+ stop(){if(this.sp)try{this.sp.cancel();}catch(e){}},
+ warmup(){if(!this.sp)return;this.pick();
+   try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;this.sp.speak(u);}catch(e){}},
+ toggle(){this.on=!this.on;if(!this.on)this.stop();
+   try{localStorage.setItem('cad_voice',this.on?'on':'off');}catch(e){}},
+};
+VOICE.init();
+
 /* =================== narrator engine =================== */
 const N={
  bags:{},cool:{},queue:[],cur:null,buf:'',idx:0,acc:0,lastDone:0,active:false,
@@ -576,7 +605,7 @@ const N={
   else if(pri>=1&&this.queue.length<2){this.queue.push(text);}
   return true;
  },
- start(text){this.cur=text;this.buf='';this.idx=0;this.acc=0;this.holdT=0;this.active=true;},
+ start(text){this.cur=text;this.buf='';this.idx=0;this.acc=0;this.holdT=0;this.active=true;VOICE.say(text);},
  update(dt){
   if(!this.cur){
     if(this.queue.length){this.start(this.queue.shift());}
@@ -609,7 +638,7 @@ const NT={
   $('ntime').classList.add('on');
   this.startLine();
  },
- startLine(){this.typing='';this.idx=0;this.acc=0;$('ntimetext').textContent='';EYE.flash('delight');},
+ startLine(){this.typing='';this.idx=0;this.acc=0;$('ntimetext').textContent='';EYE.flash('delight');VOICE.say(this.lines[this.i]);},
  tap(){
   const cur=this.lines[this.i];
   if(this.idx<cur.length){this.idx=cur.length;this.typing=cur;$('ntimetext').textContent=cur;return;}
@@ -1751,6 +1780,8 @@ function nearestDesk(x,y){ /* desks overlap in iso — always resolve to the clo
 }
 $('eye').addEventListener('click',()=>{AU.boot();pokeEye();});
 $('mute').addEventListener('click',function(){AU.boot();AU.on=!AU.on;this.classList.toggle('off',!AU.on);});
+$('voice').addEventListener('click',function(){AU.boot();VOICE.toggle();this.classList.toggle('off',!VOICE.on);});
+$('voice').classList.toggle('off',!VOICE.on);
 $('btnCatalog').addEventListener('click',()=>{AU.boot();AU.tick();openSheet();});
 $('btnHire').addEventListener('click',()=>{AU.boot();hireRunner();});
 $('ntime').addEventListener('click',()=>{AU.boot();NT.tap();});
@@ -1834,7 +1865,7 @@ showMemo(`<h1>CTRL+ALT+DELIVER</h1><div class="sub">A STATIONERY MANAGER STORY �
  <p>And somebody has to order the pencils.</p>
  <p style="font-size:11px;opacity:.65">TAP boxes to open them · DRAG bins to desks · don't run out of staplers · headphones recommended · one of the last screens on Earth will narrate</p>`,
  'CLOCK IN',()=>{
-   AU.boot();
+   AU.boot();VOICE.warmup();
    NT.run(LINES.intro,()=>{
      startDay(1,false);
      $('btnCatalog').classList.add('pulse');
