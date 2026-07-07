@@ -659,9 +659,10 @@ function resize(){
 window.addEventListener('resize',resize);
 const iso=(x,y)=>({x:G.ox+(x-y)*G.tw/2, y:G.oy+(x+y)*G.th/2});
 
-/* desk tile positions (index-matched to STAFF) — 2 rows x 3 cols, spread for readable slips */
-const DESK_T=[[0.8,1.1],[3.5,1.1],[6.0,1.1],[0.8,4.6],[3.5,4.6],[6.0,4.6]];
-const MGR_T=[6.6,5.9], BTN_T=[5.4,6.7], PLANT_T=[0.35,6.3], CAB_T=[7.4,0.2], TPS_T=[3,3.4];
+/* desk tile positions (index-matched to STAFF) — 2 rows x 3 cols with breathing room:
+   row 1 clear of the back walls, row 2 clear of the manager's corner */
+const DESK_T=[[1.0,1.4],[3.4,1.4],[5.8,1.4],[1.0,5.0],[3.4,5.0],[5.8,5.0]];
+const MGR_T=[4.6,6.9], BTN_T=[5.9,7.1], PLANT_T=[0.35,6.3], CAB_T=[7.4,0.2], TPS_T=[2.6,2.6];
 
 /* =================== drawing helpers =================== */
 function poly(pts,fill,stroke){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
@@ -757,7 +758,7 @@ function drawOffice(){
  if(S.eggs.has('INFP')){ctx.font='700 7px '+F_UI;ctx.fillStyle='#41586b';ctx.fillText('you.',cw-8+Math.sin(nowT*.3)*4,ch+12);}
  HITS.misc.push({k:'window',x:cw-30,y:ch-26,w:60,h:52});
  /* kitten poster (right wall) */
- const p1=iso(2.4,0);
+ const p1=iso(1.4,0);
  ctx.save();ctx.translate(p1.x,p1.y-G.wallH*.62);
  rrect(-11,-15,22,30,1,'#F6F0DE','#8A6B3F');
  ctx.fillStyle='#D9924A';ctx.beginPath();ctx.arc(0,-2,6,0,7);ctx.fill();
@@ -786,13 +787,11 @@ function drawDesk(i){
  const p=iso(dt[0],dt[1]);
  isoBox(dt[0],dt[1],1.6,1,G.th*1.15,active?'#A8845C':'#8f8b80',active?'#8A6B3F':'#767268',active?'#75592f':'#6a665c');
  if(active){
-   /* paper stack + pot of pencils on desk */
-   ctx.fillStyle='#F6F0DE';ctx.fillRect(p.x+G.tw*.28,p.y-G.th*1.5,12,7);
-   ctx.fillStyle='#4c5866';ctx.fillRect(p.x-G.tw*.34,p.y-G.th*1.62,5,7);
+   /* paper stack + pot of pencils, anchored ON the desktop face */
+   ctx.fillStyle='#F6F0DE';ctx.fillRect(p.x+G.tw*.16,p.y-G.th*.72,12,7);
+   ctx.fillStyle='#4c5866';ctx.fillRect(p.x-G.tw*.2,p.y-G.th*.66,5,8);
    drawPerson(p.x-G.tw*.16,p.y-G.th*1.1,STAFF[i].shirt,i);
    HITS.workers.push({i,x:p.x-G.tw*.16-14,y:p.y-G.th*1.1-34,w:28,h:40});
- }else{
-   ctx.fillStyle='rgba(120,116,106,.55)';ctx.fillRect(p.x-G.tw*.4,p.y-G.th*1.7,G.tw*.8,G.th*.7);
  }
  HITS.desks.push({i,cx:p.x+G.tw*.3,cy:p.y-G.th*.2,r:Math.max(44,G.tw*.95),active});
 }
@@ -852,7 +851,7 @@ function drawButton(){
 function drawTPS(){
  const p=iso(TPS_T[0],TPS_T[1]);
  isoBox(TPS_T[0],TPS_T[1],2.4,1.6,G.th*1.05,'#8F5B3A','#734828','#5f3b20');
- const cw2=Math.min(190,W*.44),x=p.x-cw2/2+G.tw*.4,y=p.y-G.th*5.6;
+ const cw2=Math.min(190,W*.44),x=p.x-cw2/2+G.tw*.4,y=Math.max(G.hudH+6,p.y-G.th*5.6);
  rrect(x,y,cw2,52,4,'rgba(246,240,222,.96)','#1E2430');
  ctx.font='700 9px '+F_PAPER;ctx.fillStyle='#B5311D';
  ctx.fillText('TPS RECONCILIATION',x+8,y+11);
