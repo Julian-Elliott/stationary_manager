@@ -25,4 +25,8 @@ A 13–15 minute complete session, ending — if you survive — with a certain 
 - [`docs/COUNCIL-NARRATION.md`](docs/COUNCIL-NARRATION.md) — the AI council's guest narration pitches (four made it into the game)
 - [`docs/V2-PILOT-NOTES.md`](docs/V2-PILOT-NOTES.md) — the V2 shaping document (and the easter-egg spoiler table — don't)
 
+## License
+
+Dual-licensed — see [LICENSE.md](LICENSE.md): the **code** (engine + playtest harness) is MIT; the **creative content** (the narrator's lines, characters, world, and docs) is CC BY-NC-SA 4.0, with commercial rights reserved by Julian Elliott.
+
 Season 2: GOOGOL MAIL. 4.1 billion e-mails a day. All paper. You start Monday.
